@@ -23,7 +23,7 @@ from helpers.utils import flush_to_bq,setup_driver
 # ---- Config ----
 client = bigquery.Client()
 TABLE_ID = 'eire-1746041472369.eireestate_dataset_extending.large_developments_ncbo_completion'
-WRITE_BATCH = 10
+WRITE_BATCH = 40
 SEARCH_BASE = "https://www.nbco.localgov.ie/en/bcms/search?search_api_views_fulltext="
 SITE_BASE = "https://www.nbco.localgov.ie/"
 
