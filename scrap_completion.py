@@ -38,6 +38,7 @@ def run():
     where  details_link <> ''
     and unique_application_number not in
     (select unique_application_number from `eire-1746041472369.eireestate_dataset_extending.large_developments_ncbo_completion`  )
+    and notice_type <> 'no match'
     """
     df_planing_aplications = client.query(query).to_dataframe()
 
