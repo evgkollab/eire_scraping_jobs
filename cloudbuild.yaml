@@ -1,8 +1,8 @@
 # cloudbuild.yaml
 substitutions:
   _REGION: "europe-west1"
-  _REPO: "app-containers"
-  _SERVICE: "your-service"
+  _REPO: "eire-scraping-repo"
+  _SERVICE: "eire-scraping"
 
 options:
   logging: CLOUD_LOGGING_ONLY
