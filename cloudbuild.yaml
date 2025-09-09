@@ -7,10 +7,6 @@ substitutions:
   _JOB_NCBO: "eire-scrap-ncbo"
   _JOB_RAW: "eire-scrap-raw"
 
-options:
-  logging: CLOUD_LOGGING_ONLY
-
-# 1) Build and push one image with all code
 steps:
   - name: gcr.io/cloud-builders/docker
     id: Build
@@ -30,75 +26,68 @@ steps:
         "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}",
       ]
 
-  # 2) Create or update Cloud Run Job: scrap-completion
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     id: Deploy Job - completion
     entrypoint: bash
     args:
-      - -euo
-      - pipefail
       - -c
       - |
+        set -euo pipefail
         IMAGE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
-        # create if missing, otherwise update
-        gcloud run jobs describe ${_JOB_COMPLETION} --region ${_REGION} >/dev/null 2>&1 \
-        || gcloud run jobs create ${_JOB_COMPLETION} \
-             --region ${_REGION} \
-             --image "$IMAGE" \
-             --command "python" \
-             --args "/app/scrap_completion.py" \
-             --cpu 1 --memory 512Mi \
-             --max-retries 0
-        gcloud run jobs update ${_JOB_COMPLETION} \
-          --region ${_REGION} \
+        if ! gcloud run jobs describe "${_JOB_COMPLETION}" --region "${_REGION}" >/dev/null 2>&1; then
+          gcloud run jobs create "${_JOB_COMPLETION}" \
+            --region "${_REGION}" \
+            --image "$IMAGE" \
+            --command "python" \
+            --args "/app/scrap_completion.py" \
+            --cpu 1 --memory 512Mi --max-retries 0
+        fi
+        gcloud run jobs update "${_JOB_COMPLETION}" \
+          --region "${_REGION}" \
           --image "$IMAGE" \
           --command "python" \
           --args "/app/scrap_completion.py"
 
-  # 3) Create or update Cloud Run Job: scrap-ncbo
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     id: Deploy Job - ncbo
     entrypoint: bash
     args:
-      - -euo
-      - pipefail
       - -c
       - |
+        set -euo pipefail
         IMAGE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
-        gcloud run jobs describe ${_JOB_NCBO} --region ${_REGION} >/dev/null 2>&1 \
-        || gcloud run jobs create ${_JOB_NCBO} \
-             --region ${_REGION} \
-             --image "$IMAGE" \
-             --command "python" \
-             --args "/app/scrap_ncbo.py" \
-             --cpu 1 --memory 512Mi \
-             --max-retries 0
-        gcloud run jobs update ${_JOB_NCBO} \
-          --region ${_REGION} \
+        if ! gcloud run jobs describe "${_JOB_NCBO}" --region "${_REGION}" >/dev/null 2>&1; then
+          gcloud run jobs create "${_JOB_NCBO}" \
+            --region "${_REGION}" \
+            --image "$IMAGE" \
+            --command "python" \
+            --args "/app/scrap_ncbo.py" \
+            --cpu 1 --memory 512Mi --max-retries 0
+        fi
+        gcloud run jobs update "${_JOB_NCBO}" \
+          --region "${_REGION}" \
           --image "$IMAGE" \
           --command "python" \
           --args "/app/scrap_ncbo.py"
 
-  # 4) Create or update Cloud Run Job: scrap-raw-applications
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     id: Deploy Job - raw
     entrypoint: bash
     args:
-      - -euo
-      - pipefail
       - -c
       - |
+        set -euo pipefail
         IMAGE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
-        gcloud run jobs describe ${_JOB_RAW} --region ${_REGION} >/dev/null 2>&1 \
-        || gcloud run jobs create ${_JOB_RAW} \
-             --region ${_REGION} \
-             --image "$IMAGE" \
-             --command "python" \
-             --args "/app/scrap_raw_applications.py" \
-             --cpu 1 --memory 512Mi \
-             --max-retries 0
-        gcloud run jobs update ${_JOB_RAW} \
-          --region ${_REGION} \
+        if ! gcloud run jobs describe "${_JOB_RAW}" --region "${_REGION}" >/dev/null 2>&1; then
+          gcloud run jobs create "${_JOB_RAW}" \
+            --region "${_REGION}" \
+            --image "$IMAGE" \
+            --command "python" \
+            --args "/app/scrap_raw_applications.py" \
+            --cpu 1 --memory 512Mi --max-retries 0
+        fi
+        gcloud run jobs update "${_JOB_RAW}" \
+          --region "${_REGION}" \
           --image "$IMAGE" \
           --command "python" \
           --args "/app/scrap_raw_applications.py"
