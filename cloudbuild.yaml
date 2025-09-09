@@ -1,8 +1,8 @@
 # cloudbuild.yaml
 substitutions:
   _REGION: "europe-west1"
-  _REPO: "eire-scraping-repo"
-  _IMAGE_NAME: "eire-scraper"
+  _REPO: "eire-scraping-repo" # Artifact Registry repo name
+  _IMAGE_NAME: "eire-scraper" # image name inside that repo
   _JOB_COMPLETION: "eire-scrap-completion"
   _JOB_NCBO: "eire-scrap-ncbo"
   _JOB_RAW: "eire-scrap-raw"
