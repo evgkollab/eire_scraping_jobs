@@ -90,7 +90,7 @@ steps:
       - "${_REGION}"
       - "--command"
       - "python"
-      - "--arg=--job,scrap_raw_applications"
+      - "--args=--job,scrap_raw_applications"
       - "--cpu"
       - "2"
       - "--memory"
