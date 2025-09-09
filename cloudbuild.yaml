@@ -1,3 +1,4 @@
+# cloudbuild.yaml
 substitutions:
   _REGION: "europe-west1"
   _REPO: "eire-scraping-repo" # Artifact Registry repo name
@@ -14,101 +15,90 @@ steps:
   - name: gcr.io/cloud-builders/docker
     id: Build
     args:
-      - build
-      - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}
-      - .
+      - "build"
+      - "-t"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
+      - "."
 
   # 2. Push the container image to Artifact Registry
   - name: gcr.io/cloud-builders/docker
     id: Push
     args:
-      - push
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}
+      - "push"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
 
   # 3. Deploy the job for 'completion'
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
-    id: Deploy Job - completion
+  # The 'gcloud run jobs deploy' command creates the job if it doesn't exist,
+  # or updates it if it already exists. This simplifies the script logic.
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "Deploy Job - completion"
     entrypoint: gcloud
     args:
-      - run
-      - jobs
-      - deploy
-      - ${_JOB_COMPLETION}
-      - --image
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}
-      - --region
-      - ${_REGION}
-      - --command
-      - python
-      - --args
-      - main.py
-      - --args
-      - --job
-      - --args
-      - scrap_completion
-      - --cpu
+      - "run"
+      - "jobs"
+      - "deploy"
+      - "${_JOB_COMPLETION}"
+      - "--image"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
+      - "--region"
+      - "${_REGION}"
+      - "--command"
+      - "python"
+      - "--args=--job,scrap_completion"
+      - "--cpu"
       - "2"
-      - --memory
-      - 2Gi
-      - --max-retries
+      - "--memory"
+      - "2Gi"
+      - "--max-retries"
       - "0"
 
   # 4. Deploy the job for 'ncbo'
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
-    id: Deploy Job - ncbo
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "Deploy Job - ncbo"
     entrypoint: gcloud
     args:
-      - run
-      - jobs
-      - deploy
-      - ${_JOB_NCBO}
-      - --image
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}
-      - --region
-      - ${_REGION}
-      - --command
-      - python
-      - --args
-      - main.py
-      - --args
-      - --job
-      - --args
-      - scrap_ncbo
-      - --cpu
+      - "run"
+      - "jobs"
+      - "deploy"
+      - "${_JOB_NCBO}"
+      - "--image"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
+      - "--region"
+      - "${_REGION}"
+      - "--command"
+      - "python"
+      - "--args=--job,scrap_ncbo"
+      - "--cpu"
       - "2"
-      - --memory
-      - 2Gi
-      - --max-retries
+      - "--memory"
+      - "2Gi"
+      - "--max-retries"
       - "0"
 
   # 5. Deploy the job for 'raw'
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
-    id: Deploy Job - raw
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "Deploy Job - raw"
     entrypoint: gcloud
     args:
-      - run
-      - jobs
-      - deploy
-      - ${_JOB_RAW}
-      - --image
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}
-      - --region
-      - ${_REGION}
-      - --command
-      - python
-      - --args
-      - main.py
-      - --args
-      - --job
-      - --args
-      - scrap_raw_applications
-      - --cpu
+      - "run"
+      - "jobs"
+      - "deploy"
+      - "${_JOB_RAW}"
+      - "--image"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
+      - "--region"
+      - "${_REGION}"
+      - "--command"
+      - "python"
+      - "--arg=--job,scrap_raw_applications"
+      - "--cpu"
       - "2"
-      - --memory
-      - 2Gi
-      - --max-retries
+      - "--memory"
+      - "2Gi"
+      - "--max-retries"
       - "0"
 
+# This section lists the container images that are built by this pipeline.
+# Cloud Build will push these images to the registry specified in the 'Push' step.
 images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
