@@ -6,8 +6,6 @@ substitutions:
   _JOB_COMPLETION: "eire-scrap-completion"
   _JOB_NCBO: "eire-scrap-ncbo"
   _JOB_RAW: "eire-scrap-raw"
-  # Define the full image URI once to avoid repetition and potential errors.
-  _IMAGE_URI: "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}"
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -19,7 +17,7 @@ steps:
     args:
       - "build"
       - "-t"
-      - "${_IMAGE_URI}:${SHORT_SHA}"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
       - "."
 
   # 2. Push the container image to Artifact Registry
@@ -27,7 +25,7 @@ steps:
     id: Push
     args:
       - "push"
-      - "${_IMAGE_URI}:${SHORT_SHA}"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
 
   # 3. Deploy the job for 'completion'
   # The 'gcloud run jobs deploy' command creates the job if it doesn't exist,
@@ -41,7 +39,7 @@ steps:
       - "deploy"
       - "${_JOB_COMPLETION}"
       - "--image"
-      - "${_IMAGE_URI}:${SHORT_SHA}"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
       - "--region"
       - "${_REGION}"
       - "--command"
@@ -65,7 +63,7 @@ steps:
       - "deploy"
       - "${_JOB_NCBO}"
       - "--image"
-      - "${_IMAGE_URI}:${SHORT_SHA}"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
       - "--region"
       - "${_REGION}"
       - "--command"
@@ -89,7 +87,7 @@ steps:
       - "deploy"
       - "${_JOB_RAW}"
       - "--image"
-      - "${_IMAGE_URI}:${SHORT_SHA}"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
       - "--region"
       - "${_REGION}"
       - "--command"
@@ -106,4 +104,4 @@ steps:
 # This section lists the container images that are built by this pipeline.
 # Cloud Build will push these images to the registry specified in the 'Push' step.
 images:
-  - "${_IMAGE_URI}:${SHORT_SHA}"
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${SHORT_SHA}"
