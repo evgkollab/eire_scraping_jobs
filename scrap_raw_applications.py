@@ -143,6 +143,9 @@ def retrieve_all_properties_others(driver):
     data["application_type"] = extract_text("//th[contains(text(), 'Application Type')]/following-sibling::td[1]")
     data["status_non_owner"] = extract_text("//th[contains(text(), 'Planning Status')]/following-sibling::td[1]")
     data["decision_date"] = format_date(
+        extract_text("//th[contains(text(), 'Received Date:')]/following-sibling::td[1]")
+    )
+    data["received_date"] = format_date(
         extract_text("//th[contains(text(), 'Decision Date:')]/following-sibling::td[1]")
     )
     data["decision"] = extract_text("//th[contains(text(), 'Decision Type:')]/following::td[1]")
