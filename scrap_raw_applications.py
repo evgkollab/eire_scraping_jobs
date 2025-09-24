@@ -65,6 +65,7 @@ def retrieve_all_properties(driver):
     mapping = {
         "reference":          ("input", "reference"),
         "decision_date":      ("input", "decisionDate"),
+        "received_date":      ("input", "received_date"),
         "appeal_decision_date": ("input", "appealDecisionDate"),
         "appeal_decision":    ("input", "appealDecision"),
         "appeal_type":        ("input", "appealType"),
@@ -220,6 +221,7 @@ def parse_page(driver, row, batch, batch_ctr, batch_size, table_id, planning_aut
                 "decision_date": "",
                 "appeal_decision_date": "",
                 "grant_date": "",
+                "received_date":"",
                 "applicant": "",
                 "URL": driver.current_url,
                 "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -281,6 +283,7 @@ def parse_page(driver, row, batch, batch_ctr, batch_size, table_id, planning_aut
         "appeal_decision": props.get("appeal_decision"),
         "appeal_type": props.get("appeal_type"),
         "decision_date": format_date(props.get("decision_date")),
+        "received_date": format_date(props.get("received_date")),
         "appeal_decision_date": format_date(props.get("appeal_decision_date")),
         "grant_date": format_date(props.get("final_grant_date")),
         "applicant": props.get("applicant"),
@@ -291,7 +294,7 @@ def parse_page(driver, row, batch, batch_ctr, batch_size, table_id, planning_aut
     batch_ctr[0] += 1
     if batch_ctr[0] >= batch_size:
         flush_to_bq(batch, table_id, bq_client,
-                    date_columns=["decision_date", "appeal_decision_date", "grant_date"])
+                    date_columns=["decision_date", "appeal_decision_date", "grant_date","received_date"])
         batch.clear()
         batch_ctr[0] = 0
 
@@ -529,6 +532,6 @@ def run():
                 parse_page(driver, row, batch, batch_ctr, batch_size, TABLE_ID,pa, client, replace_strings)
 
         flush_to_bq(batch, TABLE_ID, client,
-                            date_columns=["decision_date", "appeal_decision_date", "grant_date"])
+                            date_columns=["decision_date", "appeal_decision_date", "grant_date","received_date"])
     finally:
         driver.quit()
