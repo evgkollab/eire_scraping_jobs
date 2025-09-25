@@ -662,7 +662,8 @@ def run():
           AND unique_application_number NOT IN (
               SELECT unique_application_number
               FROM `eire-1746041472369.eireestate_dataset_processing.applications_raw_scrapped`)
-          ORDER BY planning_authority
+          AND planning_authority not in ('Cork County Council','Cork City Council')
+        ORDER BY planning_authority
     """
     df = client.query(query).to_dataframe()
     driver = setup_driver()
