@@ -361,7 +361,7 @@ def parse_page(
             logging.warning(
                 f"Skip UAN {row['unique_application_number']} – content not loaded."
             )
-        return
+            return
 
     # Extract property fields based on authority
     if planning_authority == "Wexford County Council":
@@ -662,9 +662,7 @@ def run():
           AND unique_application_number NOT IN (
               SELECT unique_application_number
               FROM `eire-1746041472369.eireestate_dataset_processing.applications_raw_scrapped`)
-          AND planning_authority in ('Wexford County Council')
-          AND planning_authority not in ('Cork County Council','Cork City Council','Monaghan County Council','Louth County Council','Mayo County Council')
-        ORDER BY planning_authority
+          ORDER BY planning_authority
     """
     df = client.query(query).to_dataframe()
     driver = setup_driver()
