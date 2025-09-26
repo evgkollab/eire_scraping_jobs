@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from time import sleep
 from urllib.parse import urljoin
@@ -15,7 +14,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
-from helpers.utils import flush_to_bq,setup_driver
+from helpers.utils import flush_to_bq, setup_driver
 
 # ---- Config ----
 client = bigquery.Client()
@@ -27,15 +26,15 @@ SITE_BASE = "https://www.nbco.localgov.ie/"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 
 
-
-
-
 def _safe_text(driver, by, selector, default="Not Found", timeout=5):
     try:
-        el = WebDriverWait(driver, timeout).until(EC.presence_of_element_located((by, selector)))
+        el = WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((by, selector))
+        )
         return el.text.strip()
     except Exception:
         return default
+
 
 def _parse_commencement_date(raw_date: str) -> str | None:
     if not raw_date or raw_date == "Not Found":
@@ -48,33 +47,64 @@ def _parse_commencement_date(raw_date: str) -> str | None:
         # Fallback – keep raw or return None
         return None
 
+
 def scrape_detail_page(driver, details_link: str, row: pd.Series) -> dict:
     driver.get(details_link)
 
     # Authority & fuzzy match
     extracted_authority = _safe_text(
-        driver, By.XPATH,
+        driver,
+        By.XPATH,
         "//div[contains(@class, 'field-name-field-notice-local-authority')]//div[contains(@class, 'field-item')]",
-        default=""
+        default="",
     )
     expected = (row.get("planning_authority") or "").strip()
-    match_score = fuzz.ratio(extracted_authority.lower(), expected.lower()) if extracted_authority and expected else 0
+    match_score = (
+        fuzz.ratio(extracted_authority.lower(), expected.lower())
+        if extracted_authority and expected
+        else 0
+    )
     is_special_limerick = (
-        extracted_authority == "Limerick City and County Council" and expected == "Limerick County Council"
+        extracted_authority == "Limerick City and County Council"
+        and expected == "Limerick County Council"
     )
     matched = (match_score >= 90) or is_special_limerick
 
     # Always capture what we can; if no match mark 'no match'
-    notice_type = _safe_text(driver, By.CSS_SELECTOR, ".field-name-field-notice-type .field-item", default="Not Found")
-    raw_date = _safe_text(driver, By.CSS_SELECTOR, ".field-name-field-commencement-date .date-display-single", default="Not Found")
+    notice_type = _safe_text(
+        driver,
+        By.CSS_SELECTOR,
+        ".field-name-field-notice-type .field-item",
+        default="Not Found",
+    )
+    raw_date = _safe_text(
+        driver,
+        By.CSS_SELECTOR,
+        ".field-name-field-commencement-date .date-display-single",
+        default="Not Found",
+    )
     commencement_date = _parse_commencement_date(raw_date)
 
-    owner_company = _safe_text(driver, By.CSS_SELECTOR, ".field-name-field-owner-company .field-item")
-    development_location = _safe_text(driver, By.CSS_SELECTOR, ".field-name-field-development-location .field-item")
-    builder_name = _safe_text(driver, By.CSS_SELECTOR, ".field-name-field-builder-name .field-item")
-    notice_description = _safe_text(driver, By.CSS_SELECTOR, ".field-name-field-notice-description .field-item")
-    notice_name = _safe_text(driver, By.CSS_SELECTOR, "header.notice-section h1.notice-title")
-    planning_permission_number = _safe_text(driver, By.CSS_SELECTOR, ".field-name-field-plannning-permission-num .field-item")
+    owner_company = _safe_text(
+        driver, By.CSS_SELECTOR, ".field-name-field-owner-company .field-item"
+    )
+    development_location = _safe_text(
+        driver, By.CSS_SELECTOR, ".field-name-field-development-location .field-item"
+    )
+    builder_name = _safe_text(
+        driver, By.CSS_SELECTOR, ".field-name-field-builder-name .field-item"
+    )
+    notice_description = _safe_text(
+        driver, By.CSS_SELECTOR, ".field-name-field-notice-description .field-item"
+    )
+    notice_name = _safe_text(
+        driver, By.CSS_SELECTOR, "header.notice-section h1.notice-title"
+    )
+    planning_permission_number = _safe_text(
+        driver,
+        By.CSS_SELECTOR,
+        ".field-name-field-plannning-permission-num .field-item",
+    )
 
     record = {
         "unique_application_number": row.get("unique_application_number"),
@@ -91,41 +121,44 @@ def scrape_detail_page(driver, details_link: str, row: pd.Series) -> dict:
         "planning_permission_number": planning_permission_number if matched else "",
     }
     if matched:
-        logging.info(f"✅ Match ({match_score}%) for {row.get('unique_application_number')}: {extracted_authority}")
+        logging.info(
+            f"✅ Match ({match_score}%) for {row.get('unique_application_number')}: {extracted_authority}"
+        )
     else:
-        logging.info(f"❌ No match ({match_score}%) for {row.get('unique_application_number')}: found '{extracted_authority}' expected '{expected}'")
+        logging.info(
+            f"❌ No match ({match_score}%) for {row.get('unique_application_number')}: found '{extracted_authority}' expected '{expected}'"
+        )
     driver.back()
     return record
 
+
 def run():
     query = """
-    WITH already_scrapped AS (
-      SELECT unique_application_number, notice_type
-      FROM `eire-1746041472369.eireestate_dataset_extending.large_developments_ncbo`
-    )
-    SELECT DISTINCT
-      unique_application_number,
-      planning_authority,
-      '' AS real_link
-    FROM (
-      SELECT unique_application_number, planning_authority
-      FROM `eire-1746041472369.eireestate_dataset_extending.large_developments_extended`
-      WHERE multi_phase <> 'application in progress'
-      UNION ALL
-      SELECT TRIM(part) AS unique_application_number, planning_authority
-      FROM `eire-1746041472369.eireestate_dataset_extending.large_developments_extended`,
-           UNNEST(SPLIT(COALESCE(previous_UAN, ''), ',')) AS part
-      WHERE multi_phase <> 'application in progress'
-      UNION ALL
-      SELECT abp_linked_scrapped_application_number, planning_authority
-      FROM `eire-1746041472369.eireestate_dataset_extending.large_developments_extended`
-      WHERE unique_application_number NOT IN (
-        SELECT unique_application_number FROM already_scrapped WHERE notice_type <> 'no match'
-      )
-    ) AS z
-    WHERE unique_application_number NOT IN (SELECT unique_application_number FROM already_scrapped)
-      AND unique_application_number != ''
 
+   WITH already_scrapped AS (
+        SELECT unique_application_number, notice_type
+        FROM `eire-1746041472369.eireestate_dataset_extending.large_developments_ncbo`
+      )
+   SELECT DISTINCT
+        unique_application_number,
+        planning_authority,
+        '' AS real_link
+      FROM (
+        SELECT
+        	part AS unique_application_number
+        	, planning_authority
+        FROM `eire-1746041472369.eireestate_dataset_extending.large_developments_extended`,
+             UNNEST(included_unique_application_numbers) AS part
+        UNION ALL
+        SELECT
+        	part,
+        	planning_authority
+        FROM `eire-1746041472369.eireestate_dataset_extending.large_developments_extended`,
+          UNNEST(included_linked_abp_unique_application_numbers)  AS part
+      ) AS z
+      WHERE unique_application_number  NOT IN (SELECT unique_application_number FROM already_scrapped)
+        AND unique_application_number != ''
+       )
     UNION ALL
     SELECT
         unique_application_number,
@@ -146,7 +179,9 @@ def run():
         # replicate your slicing logic; ensure length
         return f"{SEARCH_BASE}{u[3:]}" if len(u) > 3 else f"{SEARCH_BASE}{u}"
 
-    df_plan_apps["URL"] = df_plan_apps["unique_application_number"].apply(make_search_url)
+    df_plan_apps["URL"] = df_plan_apps["unique_application_number"].apply(
+        make_search_url
+    )
 
     driver = setup_driver()
     buffer: list[dict] = []
@@ -161,7 +196,9 @@ def run():
                 rec = scrape_detail_page(driver, real_link, row)
                 buffer.append(rec)
                 if len(buffer) >= WRITE_BATCH:
-                    flush_to_bq(buffer, TABLE_ID, client, date_columns=["CommencementDate"])
+                    flush_to_bq(
+                        buffer, TABLE_ID, client, date_columns=["CommencementDate"]
+                    )
                 continue
 
             logging.info(f"Initial URL: {initial_url}")
@@ -169,30 +206,39 @@ def run():
 
             while True:
                 # Results on this page
-                results = driver.find_elements(By.CSS_SELECTOR, ".item-list ul .accordion-item")
+                results = driver.find_elements(
+                    By.CSS_SELECTOR, ".item-list ul .accordion-item"
+                )
                 if not results:
                     # No results at all → write a 'no match' row
-                    buffer.append({
-                        "unique_application_number": row["unique_application_number"],
-                        "planning_authority": row["planning_authority"],
-                        "extracted_authority": "",
-                        "notice_type": "no match",
-                        "CommencementDate": None,
-                        "owner_company": "",
-                        "development_location": "",
-                        "builder_name": "",
-                        "notice_description": "",
-                        "notice_name": "",
-                        "details_link": "",
-                        "planning_permission_number": "",
-                    })
+                    buffer.append(
+                        {
+                            "unique_application_number": row[
+                                "unique_application_number"
+                            ],
+                            "planning_authority": row["planning_authority"],
+                            "extracted_authority": "",
+                            "notice_type": "no match",
+                            "CommencementDate": None,
+                            "owner_company": "",
+                            "development_location": "",
+                            "builder_name": "",
+                            "notice_description": "",
+                            "notice_name": "",
+                            "details_link": "",
+                            "planning_permission_number": "",
+                        }
+                    )
                     if len(buffer) >= WRITE_BATCH:
-                        flush_to_bq(buffer, TABLE_ID, client, date_columns=["CommencementDate"])
+                        flush_to_bq(
+                            buffer, TABLE_ID, client, date_columns=["CommencementDate"]
+                        )
                     break
 
                 for el in results:
-
-                    details_link = el.find_element(By.CSS_SELECTOR, "a.btn-small").get_attribute("href")
+                    details_link = el.find_element(
+                        By.CSS_SELECTOR, "a.btn-small"
+                    ).get_attribute("href")
                     logging.info(f"Detail URL: {details_link}")
                     sleep(1)
 
@@ -200,7 +246,9 @@ def run():
                     rec = scrape_detail_page(driver, details_link, row)
                     buffer.append(rec)
                     if len(buffer) >= WRITE_BATCH:
-                        flush_to_bq(buffer, TABLE_ID, client, date_columns=["CommencementDate"])
+                        flush_to_bq(
+                            buffer, TABLE_ID, client, date_columns=["CommencementDate"]
+                        )
 
                 # Pagination
                 try:
