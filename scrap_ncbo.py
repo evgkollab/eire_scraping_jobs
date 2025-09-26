@@ -158,7 +158,6 @@ def run():
       ) AS z
       WHERE unique_application_number  NOT IN (SELECT unique_application_number FROM already_scrapped)
         AND unique_application_number != ''
-       )
     UNION ALL
     SELECT
         unique_application_number,
