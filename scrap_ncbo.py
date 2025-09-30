@@ -185,10 +185,74 @@ def run():
     driver = setup_driver()
     buffer: list[dict] = []
 
+    USERNAME = "evgkol85@gmail.com"
+    PASSWORD = "#yko827%UkRJ&*qf"
+
     try:
         for _, row in df_plan_apps.iterrows():
             initial_url = row["URL"]
             real_link = (row.get("real_link") or "").strip()
+
+            logging.info(f"Initial URL: {initial_url}")
+            driver.get(initial_url)
+
+            # Step 1: Check if user is already logged in by looking for 'Log Out'
+            logged_in = False
+            try:
+                WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.LINK_TEXT, "Log Out"))
+                )
+                print("User is already logged in.")
+                logged_in = True
+            except TimeoutException:
+                print(
+                    "No 'Log Out' button found. Proceeding to handle cookies and log in."
+                )
+
+            # Step 2: Handle cookie banner ONLY IF not logged in
+            if not logged_in:
+                try:
+                    print("Waiting for cookie banner...")
+                    decline_button = WebDriverWait(driver, 10).until(
+                        EC.element_to_be_clickable(
+                            (By.ID, "CybotCookiebotDialogBodyButtonDecline")
+                        )
+                    )
+                    decline_button.click()
+                    print("Clicked 'Use necessary cookies only'.")
+                except TimeoutException:
+                    print("Cookie banner did not appear within the timeout.")
+                except Exception as e:
+                    print(f"Unexpected error while clicking cookie decline button: {e}")
+
+                # Step 3: Perform login
+                try:
+                    login_button = WebDriverWait(driver, 10).until(
+                        EC.element_to_be_clickable((By.LINK_TEXT, "Log In"))
+                    )
+                    login_button.click()
+
+                    WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.ID, "edit-name"))
+                    )
+                    driver.find_element(By.ID, "edit-name").send_keys(USERNAME)
+                    driver.find_element(By.ID, "edit-pass").send_keys(PASSWORD)
+                    driver.find_element(By.ID, "edit-submit").click()
+
+                    WebDriverWait(driver, 15).until(
+                        EC.presence_of_element_located(
+                            (
+                                By.XPATH,
+                                '//p[contains(text(),"Use the tabs below to create and/or view your Notices")]',
+                            )
+                        )
+                    )
+                    print("Login successful.")
+                    # After login, go back to the original URL
+                    driver.get(initial_url)
+
+                except Exception as e:
+                    print(f"Error during login process: {e}")
 
             if real_link:
                 # Use the provided link directly
@@ -199,10 +263,6 @@ def run():
                         buffer, TABLE_ID, client, date_columns=["CommencementDate"]
                     )
                 continue
-
-            logging.info(f"Initial URL: {initial_url}")
-            driver.get(initial_url)
-
             while True:
                 # Results on this page
                 results = driver.find_elements(
