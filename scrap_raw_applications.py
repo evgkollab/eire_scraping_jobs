@@ -190,12 +190,12 @@ def retrieve_all_properties_others(driver):
     data["status_non_owner"] = extract_text(
         "//th[contains(text(), 'Planning Status')]/following-sibling::td[1]"
     )
-    data["decision_date"] = format_date(
+    data["received_date"] = format_date(
         extract_text(
             "//th[contains(text(), 'Received Date:')]/following-sibling::td[1]"
         )
     )
-    data["received_date"] = format_date(
+    data["decision_date"] = format_date(
         extract_text(
             "//th[contains(text(), 'Decision Date:')]/following-sibling::td[1]"
         )
