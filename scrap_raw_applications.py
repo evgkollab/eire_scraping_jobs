@@ -212,6 +212,25 @@ def retrieve_all_properties_others(driver):
         "//th[contains(text(), 'Decision Type:')]/following::td[1]"
     )
 
+    # ─── Development Tab ────────────────────────────────────────────────
+    try:
+        development_tab = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//a[@href='#Development']"))
+        )
+        driver.execute_script("arguments[0].click();", development_tab)
+        WebDriverWait(driver, 10).until(
+            lambda d: d.find_element(By.XPATH, "//a[@href='#Development']").get_attribute(
+                "aria-selected"
+            )
+            == "true"
+        )
+        data["development_description"] = extract_text(
+            "//th[contains(text(), 'Development Description::')]/following-sibling::td[1]"
+        )
+    except Exception:
+        data["development_description"] = ""
+        logging.warning("Development tab activation or field extraction failed")
+
     # ─── Applicant Tab ────────────────────────────────────────────────
     try:
         applicant_tab = WebDriverWait(driver, 10).until(
@@ -229,7 +248,7 @@ def retrieve_all_properties_others(driver):
         )
     except Exception:
         data["applicant"] = ""
-        logging.warning("Applicant tab activation or field extraction failed")
+        logging.warning("Applicant tab activation or field extraction failed"
 
     # ─── Decision Tab ─────────────────────────────────────────────────
     try:
@@ -398,9 +417,9 @@ def parse_page(
             "unique_application_number": row["unique_application_number"],
             "application_number": row["application_number"],
             "application_status": status,
-            "development_description": (props.get("full_proposal") or "").replace(
-                "'", "''"
-            ),
+            "development_description": (
+                props.get("full_proposal") or props.get("development_description") or ""
+            ).replace("'", "''"),
             "application_type": props.get("application_type"),
             "decision": props.get("decision"),
             "appeal_decision": props.get("appeal_decision"),
@@ -672,6 +691,7 @@ def run():
               SELECT unique_application_number
               FROM `eire-1746041472369.eireestate_dataset_processing.applications_raw_scrapped`)
           AND planning_authority not in ('Cork County Council','Cork City Council')
+          and unique_application_number = 'CLA2560178'
         ORDER BY planning_authority
     """
     df = client.query(query).to_dataframe()
