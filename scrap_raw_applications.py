@@ -225,7 +225,7 @@ def retrieve_all_properties_others(driver):
             == "true"
         )
         data["development_description"] = extract_text(
-            "//th[contains(text(), 'Development Description::')]/following-sibling::td[1]"
+            "//th[contains(text(), 'Development Description:')]/following-sibling::td[1]"
         )
     except Exception:
         data["development_description"] = ""
