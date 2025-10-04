@@ -74,11 +74,11 @@ def accept_cookies(driver):
 
 
 # ──────────────────────────────  Scraper core  ─────────────────────────
-def retrieve_all_properties(driver):
+def retrieve_all_properties(driver, planning_authority):
     mapping = {
         "reference": ("input", "reference"),
         "decision_date": ("input", "decisionDate"),
-        "received_date": ("input", "received_date"),
+        # "received_date" will be set conditionally below
         "appeal_decision_date": ("input", "appealDecisionDate"),
         "appeal_decision": ("input", "appealDecision"),
         "appeal_type": ("input", "appealType"),
@@ -86,9 +86,15 @@ def retrieve_all_properties(driver):
         "application_type": ("input", "applicationType"),
         "full_proposal": ("textarea", "fullProposal"),
         "status_non_owner": ("input", "statusNonOwner"),
-        # "status_owner":       ("input", "statusOwner"),
+        # "status_owner": ("input", "statusOwner"),
         "applicant": ("input", "applicantSurname"),
     }
+
+    if planning_authority == "Dublin City Council":
+        mapping["received_date"] = ("input", "registrationDate")
+    else:
+        mapping["received_date"] = ("input", "received_date")
+
     data = {k: get_property_value(driver, *v) for k, v in mapping.items()}
     try:
         dec = (
@@ -375,7 +381,7 @@ def parse_page(
         "South Dublin County Council",
         "Fingal County Council",
     ):
-        props = retrieve_all_properties(driver)
+        props = retrieve_all_properties(driver, planning_authority)
     else:
         props = retrieve_all_properties_others(driver)
 
