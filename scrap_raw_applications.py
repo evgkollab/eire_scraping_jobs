@@ -219,9 +219,9 @@ def retrieve_all_properties_others(driver):
         )
         driver.execute_script("arguments[0].click();", development_tab)
         WebDriverWait(driver, 10).until(
-            lambda d: d.find_element(By.XPATH, "//a[@href='#Development']").get_attribute(
-                "aria-selected"
-            )
+            lambda d: d.find_element(
+                By.XPATH, "//a[@href='#Development']"
+            ).get_attribute("aria-selected")
             == "true"
         )
         data["development_description"] = extract_text(
@@ -248,7 +248,7 @@ def retrieve_all_properties_others(driver):
         )
     except Exception:
         data["applicant"] = ""
-        logging.warning("Applicant tab activation or field extraction failed"
+        logging.warning("Applicant tab activation or field extraction failed")
 
     # ─── Decision Tab ─────────────────────────────────────────────────
     try:
