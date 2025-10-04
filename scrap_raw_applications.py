@@ -49,7 +49,9 @@ def get_property_value(driver, element, prop, timeout=5):
         )
         return el.get_attribute("value")
     except Exception as e:
-        logging.warning(f"get_property_value error for {prop}: {e}")
+        logging.warning(
+            f"get_property_value error for {prop}: {e}, current page {(driver.current_url,)}"
+        )
         return None
 
 
@@ -664,6 +666,7 @@ def run():
               SELECT unique_application_number
               FROM `eire-1746041472369.eireestate_dataset_processing.applications_raw_scrapped`)
           AND planning_authority not in ('Cork County Council','Cork City Council')
+          AND unique_application_number = 'DCC3069/22'
         ORDER BY planning_authority
     """
     df = client.query(query).to_dataframe()
