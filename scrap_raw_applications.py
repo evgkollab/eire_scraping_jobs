@@ -90,10 +90,10 @@ def retrieve_all_properties(driver, planning_authority):
         "applicant": ("input", "applicantSurname"),
     }
 
-    if planning_authority == "Dublin City Council":
-        mapping["received_date"] = ("input", "registrationDate")
-    else:
-        mapping["received_date"] = ("input", "received_date")
+    # if planning_authority == "Dublin City Council":
+    mapping["received_date"] = ("input", "registrationDate")
+    # else:
+    #    mapping["received_date"] = ("input", "received_date")
 
     data = {k: get_property_value(driver, *v) for k, v in mapping.items()}
     try:
@@ -672,7 +672,6 @@ def run():
               SELECT unique_application_number
               FROM `eire-1746041472369.eireestate_dataset_processing.applications_raw_scrapped`)
           AND planning_authority not in ('Cork County Council','Cork City Council')
-          AND unique_application_number = 'DCC3069/22'
         ORDER BY planning_authority
     """
     df = client.query(query).to_dataframe()
