@@ -320,6 +320,7 @@ def parse_page(
                         "decision_date",
                         "appeal_decision_date",
                         "grant_date",
+                        "received_date",
                     ],
                 )
                 batch.clear()
@@ -328,7 +329,7 @@ def parse_page(
         # logging.info(f"▶ {planning_authority}")
         # Wait for expected element depending on authority
         if planning_authority == "Wexford County Council":
-            wait_for_element(driver, "//a[text()='Open All']", "visibility", 30)
+            wait_for_element(driver, "//a[text()='Open All']", "visibility", 20)
         elif planning_authority == "Cork County Council":
             wait_for_element(
                 driver,
@@ -341,7 +342,7 @@ def parse_page(
             and planning_authority != "Laois County Council"
         ):
             wait_for_element(
-                driver, "//input[contains(@id,'reference')]", "presence", 30
+                driver, "//input[contains(@id,'reference')]", "presence", 20
             )
         else:
             wait_for_element(
@@ -396,10 +397,10 @@ def parse_page(
             "decision": props.get("decision"),
             "appeal_decision": props.get("appeal_decision"),
             "appeal_type": props.get("appeal_type"),
-            "decision_date": format_date(props.get("decision_date")),
-            "received_date": format_date(props.get("received_date")),
-            "appeal_decision_date": format_date(props.get("appeal_decision_date")),
-            "grant_date": format_date(props.get("final_grant_date")),
+            "decision_date": props.get("decision_date"),
+            "received_date": props.get("received_date"),
+            "appeal_decision_date": props.get("appeal_decision_date"),
+            "grant_date": props.get("final_grant_date"),
             "applicant": props.get("applicant"),
             "URL": driver.current_url,
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
