@@ -78,22 +78,22 @@ def retrieve_all_properties(driver, planning_authority):
     mapping = {
         "reference": ("input", "reference"),
         "decision_date": ("input", "decisionDate"),
-        # "received_date" will be set conditionally below
         "appeal_decision_date": ("input", "appealDecisionDate"),
         "appeal_decision": ("input", "appealDecision"),
         "appeal_type": ("input", "appealType"),
         "final_grant_date": ("input", "finalGrantDate"),
         "application_type": ("input", "applicationType"),
         "full_proposal": ("textarea", "fullProposal"),
-        "status_non_owner": ("input", "statusNonOwner"),
         # "status_owner": ("input", "statusOwner"),
         "applicant": ("input", "applicantSurname"),
     }
 
-    # if planning_authority == "Dublin City Council":
     mapping["received_date"] = ("input", "registrationDate")
-    # else:
-    #    mapping["received_date"] = ("input", "received_date")
+
+    if planning_authority == "South Dublin County Council":
+        mapping["status_non_owner"] = ("input", "statusOwner")
+    else:
+        mapping["status_non_owner"] = ("input", "statusNonOwner")
 
     data = {k: get_property_value(driver, *v) for k, v in mapping.items()}
     try:
