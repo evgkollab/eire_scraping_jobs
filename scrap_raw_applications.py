@@ -495,6 +495,7 @@ def process_application_rows(
                         in (
                             "Dublin City Council",
                             "Dun Laoghaire Rathdown County Council",
+                            "Wexford County Council",
                         )
                         else "Planning Reference"
                     )
