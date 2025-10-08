@@ -589,6 +589,7 @@ def search_application(driver, row, retries, search_url):
                 "Dublin City Council",
                 "South Dublin County Council",
                 "Fingal County Council",
+                "Wexford County Council",
             ):
                 search_button = WebDriverWait(driver, 15).until(
                     EC.element_to_be_clickable((By.ID, "searchBtn"))
