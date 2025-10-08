@@ -392,13 +392,14 @@ def parse_page(
             return
 
     # Extract property fields based on authority
-    if planning_authority == "Wexford County Council":
-        props = retrieve_all_properties_wex(driver)
-    elif planning_authority in SEARCH_PAGE and planning_authority in (
+    # if planning_authority == "Wexford County Council":
+    # props = retrieve_all_properties_wex(driver)
+    if planning_authority in SEARCH_PAGE and planning_authority in (
         "Dun Laoghaire Rathdown County Council",
         "Dublin City Council",
         "South Dublin County Council",
         "Fingal County Council",
+        "Wexford County Council",
     ):
         props = retrieve_all_properties(driver, planning_authority)
     else:
@@ -695,6 +696,7 @@ def run():
               SELECT unique_application_number
               FROM `eire-1746041472369.eireestate_dataset_processing.applications_raw_scrapped`)
           AND planning_authority not in ('Cork County Council','Cork City Council')
+          AND application_status not in ('PrePlanning Application')
         ORDER BY planning_authority
     """
     df = client.query(query).to_dataframe()
