@@ -569,6 +569,7 @@ def search_application(driver, row, retries, search_url):
                 "Dublin City Council",
                 "South Dublin County Council",
                 "Fingal County Council",
+                "Wexford County Council",
             ):
                 # Try the first input field
                 inp = WebDriverWait(driver, 10).until(
