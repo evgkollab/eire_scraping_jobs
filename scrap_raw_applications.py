@@ -628,6 +628,7 @@ SEARCH_PAGE = {
     "Laois County Council": "https://www.eplanning.ie/LaoisCC/searchexact/",
     "Louth County Council": "https://www.eplanning.ie/LouthCC/SearchExact/",
     "Mayo County Council": "https://www.eplanning.ie/mayocc/SearchExact/",
+    "Wexford County Council": "https://planning.agileapplications.ie/wexford/search-applications/",
 }
 
 
@@ -721,7 +722,11 @@ def run():
             ):
                 url = url[:-1]
 
-            if not url or "fingal" in url or "pleanala" in url:
+            if not url
+                or "fingal" in url
+                or "pleanala" in url
+                or "wexfordcoco.ie/application_maps" in url:
+
                 search_url = SEARCH_PAGE[pa]
                 logging.info(f" search page▶ {search_url}")
                 if not safe_driver_get(
