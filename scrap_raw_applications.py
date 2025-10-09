@@ -199,17 +199,13 @@ def retrieve_all_properties_others(driver):
         "//th[contains(text(), 'Planning Status')]/following-sibling::td[1]"
     )
     data["received_date"] = format_date(
-        extract_text(
-            "//th[contains(text(), 'Received Date:')]/following-sibling::td[1]"
-        )
+        extract_text("//th[contains(text(), 'Received Date')]/following-sibling::td[1]")
     )
     data["decision_date"] = format_date(
-        extract_text(
-            "//th[contains(text(), 'Decision Date:')]/following-sibling::td[1]"
-        )
+        extract_text("//th[contains(text(), 'Decision Date')]/following-sibling::td[1]")
     )
     data["decision"] = extract_text(
-        "//th[contains(text(), 'Decision Type:')]/following::td[1]"
+        "//th[contains(text(), 'Decision Type')]/following::td[1]"
     )
 
     # ─── Development Tab ────────────────────────────────────────────────
@@ -225,7 +221,7 @@ def retrieve_all_properties_others(driver):
             == "true"
         )
         data["development_description"] = extract_text(
-            "//th[contains(text(), 'Development Description:')]/following-sibling::td[1]"
+            "//th[contains(text(), 'Development Description')]/following-sibling::td[1]"
         )
     except Exception:
         data["development_description"] = ""
@@ -244,7 +240,7 @@ def retrieve_all_properties_others(driver):
             == "true"
         )
         data["applicant"] = extract_text(
-            "//th[contains(text(), 'Applicant name:')]/following-sibling::td[1]"
+            "//th[contains(text(), 'Applicant name')]/following-sibling::td[1]"
         )
     except Exception:
         data["applicant"] = ""
@@ -261,11 +257,11 @@ def retrieve_all_properties_others(driver):
         )
         data["final_grant_date"] = format_date(
             extract_text(
-                "//th[normalize-space(text())='Grant Date:']/following-sibling::td[1]"
+                "//th[normalize-space(text())='Grant Date']/following-sibling::td[1]"
             )
         )
         data["full_proposal"] = extract_text(
-            "//th[contains(text(), 'Decision Description:')]/following-sibling::td[1]"
+            "//th[contains(text(), 'Decision Description')]/following-sibling::td[1]"
         )
     except Exception:
         data["grant_date"] = ""
@@ -282,14 +278,14 @@ def retrieve_all_properties_others(driver):
             )
         )
         data["appeal_type"] = extract_text(
-            "//th[contains(text(), 'Appeal Type: ')]/following-sibling::td[1]"
+            "//th[contains(text(), 'Appeal Type')]/following-sibling::td[1]"
         )
         data["appeal_decision"] = extract_text(
-            "//th[contains(text(), 'Appeal Decision: ')]/following-sibling::td[1]"
+            "//th[contains(text(), 'Appeal Decision')]/following-sibling::td[1]"
         )
         data["appeal_decision_date"] = format_date(
             extract_text(
-                "//th[contains(text(), 'Decision Date:  ')]/following-sibling::td[1]"
+                "//th[contains(text(), 'Decision Date')]/following-sibling::td[1]"
             )
         )
     except Exception:
