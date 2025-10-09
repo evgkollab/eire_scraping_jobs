@@ -386,7 +386,6 @@ def parse_page(
                 f"Skip UAN {row['unique_application_number']} – content not loaded."
             )
             return
-
     # Extract property fields based on authority
     # if planning_authority == "Wexford County Council":
     # props = retrieve_all_properties_wex(driver)
