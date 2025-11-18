@@ -1,22 +1,23 @@
-import os, logging, pandas as pd
+import logging
+import os
+import socket
+from datetime import datetime
 from time import sleep
+
+import pandas as pd
 from dotenv import load_dotenv
 from google.cloud import bigquery
+from helpers.utils import flush_to_bq, setup_driver
+from requests.exceptions import ReadTimeout
 from selenium import webdriver
-
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import (
+    NoSuchElementException,
     TimeoutException,
     WebDriverException,
-    NoSuchElementException,
 )
-from datetime import datetime
-import socket
-from requests.exceptions import ReadTimeout
-
-from helpers.utils import flush_to_bq, setup_driver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 # ──────────────────────────────  Helpers  ──────────────────────────────
@@ -398,6 +399,7 @@ def parse_page(
     ):
         props = retrieve_all_properties(driver, planning_authority)
     else:
+        logging.info(f"Retrieving properties without search")
         props = retrieve_all_properties_others(driver)
 
     status = (
@@ -736,6 +738,17 @@ def run():
 					'WEX20230500',
 					'WEX20181391',
 					'WEX20190030',
+					'CAR12281',
+					'CAR1342',
+					'CAR12220',
+					'CAR1419',
+					'CAR124',
+					'CAR13170',
+					'CAR136593',
+					'DON1310000',
+					'GAL2561616',
+					'KER25267',
+					'KER0899993',
 					'WIC')
         ORDER BY planning_authority
     """
