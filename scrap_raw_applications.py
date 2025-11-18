@@ -180,7 +180,7 @@ def retrieve_all_properties_wex(driver):
 
 
 def retrieve_all_properties_others(driver):
-    def extract_text(xpath, timeout=10):
+    def extract_text(xpath, timeout=3):
         try:
             return (
                 WebDriverWait(driver, timeout)
@@ -194,7 +194,7 @@ def retrieve_all_properties_others(driver):
 
     # ─── Application Tab (default loaded) ─────────────────────────────
     data["application_type"] = extract_text(
-        "//th[contains(text(), 'Application Type')]/following-sibling::td[1]"
+        "//th[contains(text(), 'Application Type')]/following-sibling::td[1]", 10
     )
     data["status_non_owner"] = extract_text(
         "//th[contains(text(), 'Planning Status')]/following-sibling::td[1]"
