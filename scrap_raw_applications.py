@@ -759,7 +759,7 @@ def run():
 					'TIP15600886',
 					'WFD2560776',
 					'WES2560323',
-					'WIC'),
+					'WIC')
         ORDER BY planning_authority
     """
     df = client.query(query).to_dataframe()
