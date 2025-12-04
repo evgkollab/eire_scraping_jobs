@@ -7,7 +7,11 @@ import pandas as pd
 from google.cloud import bigquery
 from helpers.utils import flush_to_bq, setup_driver
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    StaleElementReferenceException,
+    TimeoutException,
+)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -295,11 +299,23 @@ def run():
                         buffer.clear()
                     break
 
+                # 1) Collect all detail links as strings to avoid stale elements
+                detail_links = []
                 for el in results:
-                    details_link = el.find_element(
-                        By.CSS_SELECTOR, "a.btn-small"
-                    ).get_attribute("href")
+                    try:
+                        link = el.find_element(
+                            By.CSS_SELECTOR, "a.btn-small"
+                        ).get_attribute("href")
+                        if link:
+                            detail_links.append(link)
+                    except StaleElementReferenceException:
+                        logging.warning(
+                            "Element went stale while collecting links, skipping one."
+                        )
+                        continue
 
+                # 2) Process the links (safe from staleness now)
+                for details_link in detail_links:
                     if details_link in known_links:
                         logging.info(f"Already known URL: {details_link}")
                         continue
@@ -307,7 +323,9 @@ def run():
                     logging.info(f"Detail URL: {details_link}")
                     sleep(1)
 
-                    rec = scrape_detail_page(driver, details_link, row)
+                    rec = scrape_detail_page(
+                        driver, details_link, row
+                    )  # this can navigate
                     buffer.append(rec)
 
                     if len(buffer) >= WRITE_BATCH:
@@ -325,7 +343,7 @@ def run():
                     driver.get(next_url)
                     sleep(2)
                 except NoSuchElementException:
-                    logging.info("No more pages left.")
+                    logging.info("No more pages left. Exiting loop.")
                     break
 
             # Close popups
