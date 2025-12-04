@@ -1,20 +1,17 @@
+import logging
 from datetime import datetime
 from time import sleep
 from urllib.parse import urljoin
-import logging
 
 import pandas as pd
 from google.cloud import bigquery
-from thefuzz import fuzz
-
-from selenium import webdriver
-
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
-
 from helpers.utils import flush_to_bq, setup_driver
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from thefuzz import fuzz
 
 # ---- Config ----
 client = bigquery.Client()
@@ -135,10 +132,6 @@ def scrape_detail_page(driver, details_link: str, row: pd.Series) -> dict:
 def run():
     query = """
 
-   WITH already_scrapped AS (
-        SELECT unique_application_number, notice_type
-        FROM `eire-1746041472369.eireestate_dataset_extending.large_developments_ncbo`
-      )
    SELECT DISTINCT
         unique_application_number,
         planning_authority,
@@ -156,8 +149,7 @@ def run():
         FROM `eire-1746041472369.eireestate_dataset_extending.large_developments_extended`,
           UNNEST(included_linked_abp_unique_application_numbers)  AS part
       ) AS z
-      WHERE unique_application_number  NOT IN (SELECT unique_application_number FROM already_scrapped)
-        AND unique_application_number != ''
+      WHERE  unique_application_number != ''
     UNION ALL
     SELECT
         unique_application_number,
@@ -165,12 +157,15 @@ def run():
         ncbo_link
     FROM `eire-1746041472369.eireestate_dataset_staging.developments_detective`
     WHERE ncbo_link IS NOT NULL
-      AND unique_application_number NOT IN (
-        SELECT unique_application_number FROM `eire-1746041472369.eireestate_dataset_extending.large_developments_ncbo`
-      )
 
     """
     df_plan_apps = client.query(query).to_dataframe()
+
+    query = """
+    select distinct details_link from `eire-1746041472369`.eireestate_dataset_extending.large_developments_ncbo
+    where details_link is not null
+     """
+    already_found_ncbo = client.query(query).to_dataframe()
 
     # Build search URLs
     def make_search_url(u):
@@ -189,6 +184,9 @@ def run():
     PASSWORD = "#yko827%UkRJ&*qf"
 
     try:
+        # Precompute known links for performance
+        known_links = set(already_found_ncbo.details_link.dropna().tolist())
+
         for _, row in df_plan_apps.iterrows():
             initial_url = row["URL"]
             real_link = (row.get("real_link") or "").strip()
@@ -196,7 +194,7 @@ def run():
             logging.info(f"Initial URL: {initial_url}")
             driver.get(initial_url)
 
-            # Step 1: Check if user is already logged in by looking for 'Log Out'
+            # Step 1: Check if logged in
             logged_in = False
             try:
                 WebDriverWait(driver, 5).until(
@@ -209,7 +207,7 @@ def run():
                     "No 'Log Out' button found. Proceeding to handle cookies and log in."
                 )
 
-            # Step 2: Handle cookie banner ONLY IF not logged in
+            # Step 2: Cookie banner ONLY if not logged in
             if not logged_in:
                 try:
                     print("Waiting for cookie banner...")
@@ -223,9 +221,9 @@ def run():
                 except TimeoutException:
                     print("Cookie banner did not appear within the timeout.")
                 except Exception as e:
-                    print(f"Unexpected error while clicking cookie decline button: {e}")
+                    print(f"Unexpected error clicking cookie banner: {e}")
 
-                # Step 3: Perform login
+                # Step 3: Log in
                 try:
                     login_button = WebDriverWait(driver, 10).until(
                         EC.element_to_be_clickable((By.LINK_TEXT, "Log In"))
@@ -235,6 +233,7 @@ def run():
                     WebDriverWait(driver, 10).until(
                         EC.presence_of_element_located((By.ID, "edit-name"))
                     )
+
                     driver.find_element(By.ID, "edit-name").send_keys(USERNAME)
                     driver.find_element(By.ID, "edit-pass").send_keys(PASSWORD)
                     driver.find_element(By.ID, "edit-submit").click()
@@ -248,28 +247,29 @@ def run():
                         )
                     )
                     print("Login successful.")
-                    # After login, go back to the original URL
                     driver.get(initial_url)
 
                 except Exception as e:
                     print(f"Error during login process: {e}")
 
+            # If row provides a direct detail link
             if real_link:
-                # Use the provided link directly
                 rec = scrape_detail_page(driver, real_link, row)
                 buffer.append(rec)
                 if len(buffer) >= WRITE_BATCH:
                     flush_to_bq(
                         buffer, TABLE_ID, client, date_columns=["CommencementDate"]
                     )
+                    buffer.clear()
                 continue
+
+            # Otherwise scrape paginated results
             while True:
-                # Results on this page
                 results = driver.find_elements(
                     By.CSS_SELECTOR, ".item-list ul .accordion-item"
                 )
+
                 if not results:
-                    # No results at all → write a 'no match' row
                     buffer.append(
                         {
                             "unique_application_number": row[
@@ -292,22 +292,29 @@ def run():
                         flush_to_bq(
                             buffer, TABLE_ID, client, date_columns=["CommencementDate"]
                         )
+                        buffer.clear()
                     break
 
                 for el in results:
                     details_link = el.find_element(
                         By.CSS_SELECTOR, "a.btn-small"
                     ).get_attribute("href")
+
+                    if details_link in known_links:
+                        logging.info(f"Already known URL: {details_link}")
+                        continue
+
                     logging.info(f"Detail URL: {details_link}")
                     sleep(1)
 
-                    # Scrape the detail page
                     rec = scrape_detail_page(driver, details_link, row)
                     buffer.append(rec)
+
                     if len(buffer) >= WRITE_BATCH:
                         flush_to_bq(
                             buffer, TABLE_ID, client, date_columns=["CommencementDate"]
                         )
+                        buffer.clear()
 
                 # Pagination
                 try:
@@ -318,23 +325,22 @@ def run():
                     driver.get(next_url)
                     sleep(2)
                 except NoSuchElementException:
-                    logging.info("No more pages left. Exiting loop.")
+                    logging.info("No more pages left.")
                     break
-            logging.info("Closing windows")
-            # Get the first window handle (the main one)
-            main_handle = driver.window_handles[0]
 
-            # Loop through all window handles and close those that are not the main one
+            # Close popups
+            logging.info("Closing windows")
+            main_handle = driver.window_handles[0]
             for handle in driver.window_handles:
                 if handle != main_handle:
                     driver.switch_to.window(handle)
                     driver.close()
-
-                    # Optionally, switch back to the main window (first tab)
             driver.switch_to.window(main_handle)
+
         # Final flush
         if buffer:
             flush_to_bq(buffer, TABLE_ID, client, date_columns=["CommencementDate"])
+            buffer.clear()
 
     finally:
         driver.quit()

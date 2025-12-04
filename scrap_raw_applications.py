@@ -749,7 +749,17 @@ def run():
 					'GAL2561616',
 					'KER25267',
 					'KER0899993',
-					'WIC')
+					'LAO22495',
+					'LEI2560179',
+					'MEA2561104',
+					'MON2460437',
+					'OFF2560532',
+					'ROS2354',
+					'SLI2560455',
+					'TIP15600886',
+					'WFD2560776',
+					'WES2560323',
+					'WIC'),
         ORDER BY planning_authority
     """
     df = client.query(query).to_dataframe()
