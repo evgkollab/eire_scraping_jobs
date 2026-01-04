@@ -660,16 +660,19 @@ def safe_driver_get(driver, url, pa, max_retries=3, wait_seconds=2):
             return True  # Success
 
         except (TimeoutException, WebDriverException, socket.timeout, ReadTimeout) as e:
+            # Check if we are actually on the page despite the timeout
+            try:
+                if driver.current_url != "data:," and len(driver.page_source) > 1000:
+                    logging.warning(
+                        f"[safe_driver_get] Timeout hit, but page seems loaded. Proceeding. Error: {e}"
+                    )
+                    return True
+            except:
+                pass
+
             logging.warning(
-                f"[safe_driver_get] Known exception on attempt {attempt + 1}: {e}"
+                f"[safe_driver_get] Genuine timeout on attempt {attempt + 1}: {e}"
             )
-            # try:
-            #     with open("/tmp/chromedriver.log", "r") as f:
-            #         logging.error(
-            #             "CHROMEDRIVER LOG TAIL:\n" + "".join(f.readlines()[-200:])
-            #         )
-            # except Exception:
-            #     pass
 
         except Exception as e:
             logging.error(
