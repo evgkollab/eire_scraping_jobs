@@ -37,11 +37,15 @@ def setup_driver():
     opts.add_argument("--disable-gpu-sandbox")
 
     opts.add_argument(
+        "--proxy-server=http://pcaNifMIJV-resfix-ie-nnid-0:PC_2t67sBsYxI0eNLqOh@proxy-eu.proxy-cheap.com:5959"
+    )
+
+    opts.add_argument(
         "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
     )
 
     prefs = {
-        "profile.managed_default_content_settings.images": 2,  # Block images
+        "profile.managed_default_content_settings.images": 1,  # Block images
         "profile.managed_default_content_settings.stylesheets": 1,
         "profile.default_content_setting_values.notifications": 2,
         "profile.managed_default_content_settings.cookies": 1,

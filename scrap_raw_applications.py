@@ -1,6 +1,7 @@
 import logging
 import os
 import socket
+import time
 from datetime import datetime
 from time import sleep
 
@@ -632,42 +633,6 @@ SEARCH_PAGE = {
     "Wexford County Council": "https://planning.agileapplications.ie/wexford/search-applications/",
 }
 
-import base64
-import time
-
-
-def log_debug_snapshot(driver, stage_name):
-    """Prints page URL, HTML snippet, and Base64 Screenshot to logs."""
-    logging.warning(f"--- DEBUG SNAPSHOT: {stage_name} ---")
-    try:
-        logging.warning(f"CURRENT URL: {driver.current_url}")
-        logging.warning(f"PAGE TITLE: {driver.title}")
-    except Exception:
-        logging.warning("Driver is dead, cannot get URL/Title")
-        return
-
-    # 1. Print start of HTML
-    try:
-        html = driver.page_source
-        if html:
-            logging.warning(f"HTML SNIPPET: {html[:1000]}...")
-    except Exception:
-        logging.warning("Could not get Page Source")
-
-    # 2. Base64 Screenshot
-    try:
-        screenshot_b64 = driver.get_screenshot_as_base64()
-        logging.warning(f"SCREENSHOT_B64: {screenshot_b64}")
-        logging.warning(
-            "(Copy the string above and paste into https://base64.guru/converter/decode/image)"
-        )
-    except Exception as e:
-        logging.warning(f"Could not take screenshot: {e}")
-    logging.warning("---------------------------------------")
-
-
-import requests
-
 
 def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seconds=2):
     """
@@ -676,35 +641,6 @@ def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seco
     """
     # Lower timeout so we don't wait 60s for a hanging page
     driver.set_page_load_timeout(30)
-
-    def check_network_visibility():
-        url = "https://planning.corkcity.ie/SearchExact"
-        logging.warning(f"Testing network connectivity to {url}...")
-        try:
-            # Use a fake User-Agent so we look like a browser, not python-requests
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
-            r = requests.get(url, headers=headers, timeout=10)
-            logging.warning(f"Status Code: {r.status_code}")
-            logging.warning(f"Response Headers: {r.headers}")
-
-            if (
-                "Incapsula" in r.text
-                or "Cloudflare" in r.text
-                or "Access Denied" in r.text
-            ):
-                logging.warning(
-                    "🚨 BLOCKED: It looks like the site is blocking Google Cloud IPs!"
-                )
-            else:
-                logging.warning("✅ Network connection looks OK.")
-
-        except Exception as e:
-            logging.warning(f"🚨 NETWORK ERROR: {e}")
-
-    # Call this once at the very top of main.py
-    check_network_visibility()
 
     attempt = 0
     while attempt < max_retries:
@@ -720,15 +656,6 @@ def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seco
                 f"[safe_driver_get] Timeout on attempt {attempt + 1}. Taking snapshot..."
             )
 
-            # 1. Stop the loading so we can take a picture
-            try:
-                driver.execute_script("window.stop();")
-            except Exception:
-                pass
-
-            # 2. Capture the Debug Info (Crucial!)
-            log_debug_snapshot(driver, "TIMEOUT_ON_LOAD")
-
         except WebDriverException as e:
             logging.error(
                 f"[safe_driver_get] Browser CRASH on attempt {attempt + 1}: {e}"
@@ -738,35 +665,8 @@ def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seco
             attempt += 1
             continue
 
-        # --- VERIFICATION & CLEANUP ---
-        try:
-            # 1. Nuke Banner (Don't click!)
-            if pa == "Cork City Council":
-                try:
-                    driver.execute_script("""
-                        var b = document.getElementById('cookie-law');
-                        if (b) b.remove();
-                        document.body.style.overflow = 'visible';
-                    """)
-                except Exception:
-                    pass
-
-            # 2. Verify Page Content
-            # If we are on Search page, look for input; else look for generic body
-            if "SearchExact" in url:
-                WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located((By.ID, "SearchString"))
-                )
-            else:
-                WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located((By.TAG_NAME, "body"))
-                )
-
-            return True, driver
-
         except Exception as e:
             logging.warning(f"[safe_driver_get] Content verification failed: {e}")
-            log_debug_snapshot(driver, "VERIFICATION_FAILED")
 
         # --- RESTART IF FAILED ---
         logging.warning("Restarting driver before next attempt...")
