@@ -1,7 +1,6 @@
 import logging
 import os
 import socket
-import time
 from datetime import datetime
 from time import sleep
 
@@ -631,88 +630,155 @@ SEARCH_PAGE = {
     "Louth County Council": "https://www.eplanning.ie/LouthCC/SearchExact/",
     "Mayo County Council": "https://www.eplanning.ie/mayocc/SearchExact/",
     "Wexford County Council": "https://planning.agileapplications.ie/wexford/search-applications/",
-    "Cork City Council": "https://planning.corkcity.ie/SearchExact",
 }
+
+import base64
+import time
+
+
+def log_debug_snapshot(driver, stage_name):
+    """Prints page URL, HTML snippet, and Base64 Screenshot to logs."""
+    logging.warning(f"--- DEBUG SNAPSHOT: {stage_name} ---")
+    try:
+        logging.warning(f"CURRENT URL: {driver.current_url}")
+        logging.warning(f"PAGE TITLE: {driver.title}")
+    except Exception:
+        logging.warning("Driver is dead, cannot get URL/Title")
+        return
+
+    # 1. Print start of HTML
+    try:
+        html = driver.page_source
+        if html:
+            logging.warning(f"HTML SNIPPET: {html[:1000]}...")
+    except Exception:
+        logging.warning("Could not get Page Source")
+
+    # 2. Base64 Screenshot
+    try:
+        screenshot_b64 = driver.get_screenshot_as_base64()
+        logging.warning(f"SCREENSHOT_B64: {screenshot_b64}")
+        logging.warning(
+            "(Copy the string above and paste into https://base64.guru/converter/decode/image)"
+        )
+    except Exception as e:
+        logging.warning(f"Could not take screenshot: {e}")
+    logging.warning("---------------------------------------")
+
+
+import requests
 
 
 def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seconds=2):
-    attempt = 0
-    # 1. Lower the timeout for GET only.
-    # We don't want to wait 60s just to find out it hung. 20s is plenty for 'eager'.
-    driver.set_page_load_timeout(20)
+    """
+    Robust GET that handles timeouts, crashes, and captures debug info.
+    Returns: (success, driver)
+    """
+    # Lower timeout so we don't wait 60s for a hanging page
+    driver.set_page_load_timeout(30)
 
+    def check_network_visibility():
+        url = "https://planning.corkcity.ie/SearchExact"
+        logging.warning(f"Testing network connectivity to {url}...")
+        try:
+            # Use a fake User-Agent so we look like a browser, not python-requests
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            r = requests.get(url, headers=headers, timeout=10)
+            logging.warning(f"Status Code: {r.status_code}")
+            logging.warning(f"Response Headers: {r.headers}")
+
+            if (
+                "Incapsula" in r.text
+                or "Cloudflare" in r.text
+                or "Access Denied" in r.text
+            ):
+                logging.warning(
+                    "🚨 BLOCKED: It looks like the site is blocking Google Cloud IPs!"
+                )
+            else:
+                logging.warning("✅ Network connection looks OK.")
+
+        except Exception as e:
+            logging.warning(f"🚨 NETWORK ERROR: {e}")
+
+    # Call this once at the very top of main.py
+    check_network_visibility()
+
+    attempt = 0
     while attempt < max_retries:
-        logging.info(f"[safe_driver_get] Attempt {attempt + 1} for {url}")
+        logging.info(
+            f"[safe_driver_get] Attempt {attempt + 1} of {max_retries} for URL: {url}"
+        )
 
         try:
-            # This might hang...
             driver.get(url)
 
         except (TimeoutException, socket.timeout, ReadTimeout):
-            # ... If it hangs, we catch it here immediately.
-            logging.warning("[safe_driver_get] Page load timed out. Forcing stop...")
+            logging.warning(
+                f"[safe_driver_get] Timeout on attempt {attempt + 1}. Taking snapshot..."
+            )
+
+            # 1. Stop the loading so we can take a picture
             try:
-                # 2. FORCE the browser to stop downloading. This 'unfreezes' the DOM.
                 driver.execute_script("window.stop();")
             except Exception:
                 pass
 
+            # 2. Capture the Debug Info (Crucial!)
+            log_debug_snapshot(driver, "TIMEOUT_ON_LOAD")
+
         except WebDriverException as e:
-            # If the browser crashed hard, we must restart
-            logging.error(f"Browser crashed: {e}")
+            logging.error(
+                f"[safe_driver_get] Browser CRASH on attempt {attempt + 1}: {e}"
+            )
+            # Do NOT try to take a snapshot here, the driver is likely dead.
             driver = _restart_driver(driver, setup_driver_func)
             attempt += 1
             continue
 
-        # --- CODE NOW PROCEEDS HERE (Even after a Timeout) ---
-
-        # 3. NOW we kill the popup (Because the DOM is finally accessible)
-        if pa == "Cork City Council":
-            _nuke_cork_banner(driver)
-
-        # 4. Verify we are actually on the page
-        # We check for a generic element like 'body' or 'form', not specific text yet
+        # --- VERIFICATION & CLEANUP ---
         try:
-            if (
-                "planning.corkcity.ie" not in driver.current_url
-                and "Error" in driver.title
-            ):
-                raise WebDriverException("Invalid page loaded")
+            # 1. Nuke Banner (Don't click!)
+            if pa == "Cork City Council":
+                try:
+                    driver.execute_script("""
+                        var b = document.getElementById('cookie-law');
+                        if (b) b.remove();
+                        document.body.style.overflow = 'visible';
+                    """)
+                except Exception:
+                    pass
 
-            # If we see the body, we assume success
-            WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
-            )
+            # 2. Verify Page Content
+            # If we are on Search page, look for input; else look for generic body
+            if "SearchExact" in url:
+                WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.ID, "SearchString"))
+                )
+            else:
+                WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "body"))
+                )
+
             return True, driver
 
-        except Exception:
-            logging.warning("Content verification failed. Retrying...")
+        except Exception as e:
+            logging.warning(f"[safe_driver_get] Content verification failed: {e}")
+            log_debug_snapshot(driver, "VERIFICATION_FAILED")
 
-        # If we failed verification, restart and try again
+        # --- RESTART IF FAILED ---
+        logging.warning("Restarting driver before next attempt...")
         driver = _restart_driver(driver, setup_driver_func)
         attempt += 1
         time.sleep(wait_seconds)
 
-    logging.error(
-        f"[safe_driver_get] Failed to load {url} after {max_retries} attempts."
-    )
+    logging.error(f"[safe_driver_get] Critical Fail: Could not load {url}")
     return False, driver
 
 
-def _nuke_cork_banner(driver):
-    """Helper to destroy the banner without clicking it."""
-    try:
-        driver.execute_script("""
-            var banner = document.getElementById('cookie-law');
-            if (banner) { banner.remove(); }
-            document.body.style.overflow = 'visible';
-        """)
-    except Exception:
-        pass
-
-
 def _restart_driver(old_driver, setup_func):
-    """Helper to safely reboot the driver."""
     try:
         old_driver.quit()
     except Exception:
@@ -848,7 +914,6 @@ def run():
             if (
                 not url
                 or "fingal" in url
-                or "corkcity" in url
                 or "pleanala" in url
                 or "wexfordcoco.ie/application_maps" in url
             ):
