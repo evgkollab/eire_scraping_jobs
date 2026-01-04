@@ -847,6 +847,7 @@ def run():
             if (
                 not url
                 or "fingal" in url
+                or "corkcity" in url
                 or "pleanala" in url
                 or "wexfordcoco.ie/application_maps" in url
             ):
