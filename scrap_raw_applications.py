@@ -643,14 +643,16 @@ def safe_driver_get(driver, url, pa, max_retries=3, wait_seconds=2):
             logging.debug(f"[safe_driver_get] Navigating to: {url}")
             driver.get(url)
 
-            def kill_cookie_banner(driver):
+            # Kill banner ASAP (DOMContentLoaded, not full load)
+            if pa == "Cork City Council":
+                WebDriverWait(driver, 10).until(
+                    lambda d: d.execute_script("return document.readyState")
+                    in ("interactive", "complete")
+                )
                 driver.execute_script("""
                     let b = document.querySelector('.close-cookie-banner');
                     if (b) b.click();
                 """)
-
-            if pa == "Cork City Council":
-                kill_cookie_banner(driver)
 
             logging.debug(
                 f"[safe_driver_get] Current URL after get: {driver.current_url}"
@@ -847,7 +849,7 @@ def run():
                             "Timed out waiting for URL to change after search."
                         )
             else:
-                if not safe_driver_get(driver, url, max_retries=3, wait_seconds=10):
+                if not safe_driver_get(driver, url, pa, max_retries=3, wait_seconds=10):
                     continue
                 sleep(2)
                 logging.info(f"▶ parse_page {url}")
