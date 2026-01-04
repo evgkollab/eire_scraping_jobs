@@ -7,6 +7,7 @@ from google.cloud import bigquery
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 def setup_driver():
@@ -23,6 +24,7 @@ def setup_driver():
     opts.add_argument("--disable-renderer-backgrounding")
     opts.add_argument("--disable-features=VizDisplayCompositor")
     opts.add_argument("--disable-extensions")
+    opts.add_argument("--remote-debugging-pipe")
 
     opts.add_argument(
         "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
@@ -43,10 +45,10 @@ def setup_driver():
     #
     opts.page_load_strategy = "eager"
 
-    opts.binary_location = os.getenv("GOOGLE_CHROME_BIN", "/usr/bin/chromium")
-
+    opts.binary_location = os.getenv("GOOGLE_CHROME_BIN", "/usr/bin/google-chrome")
+    service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(
-        service=Service(os.getenv("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")),
+        service=service,
         options=opts,
         # log_output="/tmp/chromedriver.log",
     )
