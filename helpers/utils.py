@@ -1,12 +1,13 @@
-from google.cloud import bigquery
-import pandas as pd
 import logging
-from typing import List, Dict, Optional
+import os
+from typing import Dict, List, Optional
+
+import pandas as pd
+from google.cloud import bigquery
+from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from selenium import webdriver
 
-import os
 
 def setup_driver():
     opts = Options()
@@ -20,21 +21,26 @@ def setup_driver():
     opts.add_argument("--disable-background-timer-throttling")
     opts.add_argument("--disable-backgrounding-occluded-windows")
     opts.add_argument("--disable-renderer-backgrounding")
+    opts.add_argument("--single-process")
+    opts.add_argument("--disable-features=VizDisplayCompositor")
+    opts.add_argument("--disable-software-rasterizer")
+    opts.add_argument("--disable-extensions")
     opts.binary_location = os.getenv("GOOGLE_CHROME_BIN", "/usr/bin/chromium")
 
     driver = webdriver.Chrome(
         service=Service(os.getenv("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")),
         options=opts,
     )
-    driver.set_page_load_timeout(200)  # 200 seconds
+    driver.set_page_load_timeout(60)
     return driver
+
 
 def flush_to_bq(
     records: List[Dict],
     table_id: str,
     client: bigquery.Client,
     date_columns: Optional[List[str]] = None,
-    type_casts: Optional[Dict[str, str]] = None
+    type_casts: Optional[Dict[str, str]] = None,
 ):
     """
     Uploads records to a BigQuery table with optional date parsing and type casting.
