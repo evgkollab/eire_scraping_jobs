@@ -1,6 +1,7 @@
 import logging
 import os
 import socket
+import time
 from datetime import datetime
 from time import sleep
 
@@ -639,40 +640,53 @@ def safe_driver_get(driver, url, pa, max_retries=3, wait_seconds=2):
         logging.info(
             f"[safe_driver_get] Attempt {attempt + 1} of {max_retries} for URL: {url}"
         )
+
         try:
             logging.debug(f"[safe_driver_get] Navigating to: {url}")
             driver.get(url)
 
-            # Kill banner ASAP (DOMContentLoaded, not full load)
+            # --- Success Path ---
+            # If we get here, driver.get() finished "normally"
             if pa == "Cork City Council":
-                WebDriverWait(driver, 10).until(
-                    lambda d: d.execute_script("return document.readyState")
-                    in ("interactive", "complete")
-                )
-                driver.execute_script("""
-                    let b = document.querySelector('.close-cookie-banner');
-                    if (b) b.click();
-                """)
+                try:
+                    # quick wait to ensure interactivity before clicking
+                    WebDriverWait(driver, 5).until(
+                        lambda d: d.execute_script("return document.readyState")
+                        in ("interactive", "complete")
+                    )
+                    driver.execute_script("""
+                        let b = document.querySelector('.close-cookie-banner');
+                        if (b) b.click();
+                    """)
+                except Exception:
+                    logging.warning(
+                        "[safe_driver_get] Could not click cookie banner, proceeding anyway."
+                    )
 
-            logging.debug(
-                f"[safe_driver_get] Current URL after get: {driver.current_url}"
-            )
             return True  # Success
 
         except (TimeoutException, WebDriverException, socket.timeout, ReadTimeout) as e:
-            # Check if we are actually on the page despite the timeout
-            try:
-                if driver.current_url != "data:," and len(driver.page_source) > 1000:
-                    logging.warning(
-                        f"[safe_driver_get] Timeout hit, but page seems loaded. Proceeding. Error: {e}"
-                    )
-                    return True
-            except:
-                pass
-
             logging.warning(
-                f"[safe_driver_get] Genuine timeout on attempt {attempt + 1}: {e}"
+                f"[safe_driver_get] Timeout/Error on attempt {attempt + 1}: {str(e)}"
             )
+
+            # 1. STOP the loading spinner so the renderer unfreezes
+            try:
+                driver.execute_script("window.stop();")
+            except Exception:
+                pass  # If this fails, the driver might be dead, but we proceed to check source
+
+            # 2. Check if we actually got what we wanted despite the error
+            if "planningApplicationDetails" in driver.page_source:
+                logging.info(
+                    "[safe_driver_get] Timeout hit, but content is present. Recovered successfully."
+                )
+                return True
+            else:
+                logging.warning(
+                    f"[safe_driver_get] Content verification failed on attempt {attempt + 1}. Retrying..."
+                )
+                # We do NOT raise here; we let the loop continue to the next attempt
 
         except Exception as e:
             logging.error(
@@ -680,11 +694,12 @@ def safe_driver_get(driver, url, pa, max_retries=3, wait_seconds=2):
                 exc_info=True,
             )
 
+        # Increment and wait before next retry
         attempt += 1
-        sleep(wait_seconds)
+        time.sleep(wait_seconds)
 
     logging.error(
-        f"[safe_driver_get] Failed to load {url} after {max_retries} attempts."
+        f"[safe_driver_get] Critical Fail: Could not load {url} after {max_retries} attempts."
     )
     return False
 
