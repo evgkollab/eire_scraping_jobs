@@ -98,6 +98,8 @@ steps:
       - "2"
       - "--memory"
       - "4Gi"
+      - "--execution-environment"
+      - "gen2"
       - "--max-retries"
       - "0"
 
