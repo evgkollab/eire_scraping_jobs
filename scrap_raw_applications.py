@@ -652,6 +652,31 @@ def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seco
         try:
             driver.get(url)
 
+            # --- MANUAL WAIT (The new "Load" logic) ---
+            # We wait up to 20s for the <body> tag to appear.
+            # If the proxy is slow, this is where we wait.
+            WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            )
+
+            # --- BANNER KILLER ---
+            if pa == "Cork City Council":
+                try:
+                    # Wait 2s for banner to render (since we are moving fast)
+                    time.sleep(2)
+                    driver.execute_script("""
+                        var b = document.getElementById('cookie-law');
+                        if(b) b.remove();
+                    """)
+                except Exception:
+                    pass
+
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "container"))
+            )
+
+            return True, driver
+
         except (TimeoutException, socket.timeout, ReadTimeout):
             logging.warning(f"[safe_driver_get] Timeout on attempt {attempt + 1}.")
 

@@ -13,34 +13,31 @@ from selenium.webdriver.chrome.service import Service
 
 
 def get_proxy_auth_extension(proxy_host, proxy_port, proxy_user, proxy_pass):
-    """
-    Creates a Chrome extension (zip file) that handles proxy authentication.
-    Returns the path to the zip file.
-    """
     extension_dir = "/tmp/proxy_auth_plugin"
     zip_plugin_path = "/tmp/proxy_auth_plugin.zip"
 
+    # 1. Manifest V3 (Required for Chrome 127+)
     manifest_json = """
     {
         "version": "1.0.0",
-        "manifest_version": 2,
-        "name": "Chrome Proxy",
+        "manifest_version": 3,
+        "name": "Chrome Proxy Auth",
         "permissions": [
             "proxy",
-            "tabs",
-            "unlimitedStorage",
-            "storage",
-            "<all_urls>",
             "webRequest",
-            "webRequestBlocking"
+            "webRequestAuthProvider"
+        ],
+        "host_permissions": [
+            "<all_urls>"
         ],
         "background": {
-            "scripts": ["background.js"]
-        },
-        "minimum_chrome_version":"22.0.0"
+            "service_worker": "background.js"
+        }
     }
     """
 
+    # 2. Background Service Worker
+    # Note: MV3 still allows blocking for onAuthRequired
     background_js = f"""
     var config = {{
         mode: "fixed_servers",
