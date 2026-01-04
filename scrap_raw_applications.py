@@ -637,79 +637,59 @@ SEARCH_PAGE = {
 
 def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seconds=2):
     attempt = 0
+    # 1. Lower the timeout for GET only.
+    # We don't want to wait 60s just to find out it hung. 20s is plenty for 'eager'.
+    driver.set_page_load_timeout(20)
+
     while attempt < max_retries:
-        logging.info(
-            f"[safe_driver_get] Attempt {attempt + 1} of {max_retries} for URL: {url}"
-        )
+        logging.info(f"[safe_driver_get] Attempt {attempt + 1} for {url}")
 
         try:
+            # This might hang...
             driver.get(url)
 
-            # --- CORRIGIBLE WAIT ---
-            # Wait up to 5 seconds for the body to be present
-            # We don't wait for 'complete' state because the banner might block it
+        except (TimeoutException, socket.timeout, ReadTimeout):
+            # ... If it hangs, we catch it here immediately.
+            logging.warning("[safe_driver_get] Page load timed out. Forcing stop...")
             try:
-                from selenium.webdriver.common.by import By
-                from selenium.webdriver.support import expected_conditions as EC
-                from selenium.webdriver.support.ui import WebDriverWait
-
-                WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located((By.TAG_NAME, "body"))
-                )
-            except TimeoutException:
-                pass  # If it times out, we proceed to try and kill the banner anyway
-
-            # --- THE FIX: DESTROY THE BANNER ---
-            if pa == "Cork City Council":
-                try:
-                    driver.execute_script("""
-                        // 1. Target the specific ID you found
-                        var banner = document.getElementById('cookie-law');
-                        if (banner) {
-                            banner.remove();
-                            console.log('Cookie banner destroyed.');
-                        }
-
-                        // 2. Also try to force the body to be visible just in case
-                        document.body.style.overflow = 'visible';
-
-                        // 3. DO NOT CLICK "Accept" (It triggers GA which we blocked)
-                        // If we must click, click "Decline" which just closes it
-                        // var decline = document.querySelector("button[onclick*='closeCookieBanner']");
-                        // if (decline) decline.click();
-                    """)
-                    logging.info("Nuked cookie banner from DOM.")
-                except Exception as e:
-                    logging.warning(f"Could not remove banner: {e}")
-
-            return True, driver
-
-        except (TimeoutException, socket.timeout, ReadTimeout) as e:
-            logging.warning(
-                f"[safe_driver_get] Timeout on attempt {attempt + 1}. Attempting recovery..."
-            )
-            try:
-                # Stop the spinner
+                # 2. FORCE the browser to stop downloading. This 'unfreezes' the DOM.
                 driver.execute_script("window.stop();")
-
-                # Check if we have the content we need despite the timeout
-                if "planningApplicationDetails" in driver.page_source:
-                    logging.info("Recovered via window.stop(). Content is present.")
-                    return True, driver
             except Exception:
                 pass
 
         except WebDriverException as e:
-            logging.error(f"[safe_driver_get] Browser CRASH: {e}")
-            # If it crashed, we MUST break the loop and restart the driver below
+            # If the browser crashed hard, we must restart
+            logging.error(f"Browser crashed: {e}")
+            driver = _restart_driver(driver, setup_driver_func)
+            attempt += 1
+            continue
 
-        # --- RESTART LOGIC ---
-        logging.warning("Restarting driver...")
+        # --- CODE NOW PROCEEDS HERE (Even after a Timeout) ---
+
+        # 3. NOW we kill the popup (Because the DOM is finally accessible)
+        if pa == "Cork City Council":
+            _nuke_cork_banner(driver)
+
+        # 4. Verify we are actually on the page
+        # We check for a generic element like 'body' or 'form', not specific text yet
         try:
-            driver.quit()
+            if (
+                "planning.corkcity.ie" not in driver.current_url
+                and "Error" in driver.title
+            ):
+                raise WebDriverException("Invalid page loaded")
+
+            # If we see the body, we assume success
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            )
+            return True, driver
+
         except Exception:
-            pass
-        driver = setup_driver_func()  # Create fresh driver
+            logging.warning("Content verification failed. Retrying...")
+
+        # If we failed verification, restart and try again
+        driver = _restart_driver(driver, setup_driver_func)
         attempt += 1
         time.sleep(wait_seconds)
 
@@ -717,6 +697,27 @@ def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seco
         f"[safe_driver_get] Failed to load {url} after {max_retries} attempts."
     )
     return False, driver
+
+
+def _nuke_cork_banner(driver):
+    """Helper to destroy the banner without clicking it."""
+    try:
+        driver.execute_script("""
+            var banner = document.getElementById('cookie-law');
+            if (banner) { banner.remove(); }
+            document.body.style.overflow = 'visible';
+        """)
+    except Exception:
+        pass
+
+
+def _restart_driver(old_driver, setup_func):
+    """Helper to safely reboot the driver."""
+    try:
+        old_driver.quit()
+    except Exception:
+        pass
+    return setup_func()
 
 
 # ──────────────────────────────  Main  ────────────────────────────────
