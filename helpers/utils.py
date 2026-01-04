@@ -21,9 +21,7 @@ def setup_driver():
     opts.add_argument("--disable-background-timer-throttling")
     opts.add_argument("--disable-backgrounding-occluded-windows")
     opts.add_argument("--disable-renderer-backgrounding")
-    opts.add_argument("--single-process")
     opts.add_argument("--disable-features=VizDisplayCompositor")
-    opts.add_argument("--disable-software-rasterizer")
     opts.add_argument("--disable-extensions")
     opts.binary_location = os.getenv("GOOGLE_CHROME_BIN", "/usr/bin/chromium")
 
