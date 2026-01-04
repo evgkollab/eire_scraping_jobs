@@ -666,6 +666,32 @@ def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seco
             WebDriverWait(driver, 20).until(
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
+            if pa == "Cork County Council":
+                # --- 2. THE FIX: CHECK FOR "BROKEN" ASSETS ---
+                # We check if jQuery ($) loaded. If not, the page is broken.
+                is_broken = False
+                try:
+                    # Returns True if jQuery is missing
+                    is_broken = driver.execute_script(
+                        "return (typeof jQuery == 'undefined');"
+                    )
+                except Exception:
+                    pass  # If this check fails, assume it's broken or just HTML
+
+                # If broken OR "Error" in title, we REFRESH
+                if (
+                    is_broken
+                    or "Error" in driver.title
+                    or "ERR_EMPTY_RESPONSE" in driver.page_source
+                ):
+                    logging.warning(
+                        "⚠️ Page loaded broken (Missing JS or Empty Response). Refreshing..."
+                    )
+                    driver.refresh()
+                    # Wait again after refresh
+                    WebDriverWait(driver, 20).until(
+                        EC.presence_of_element_located((By.TAG_NAME, "body"))
+                    )
 
             # --- BANNER KILLER ---
             if pa == "Cork City Council":
