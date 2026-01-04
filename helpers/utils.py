@@ -28,6 +28,8 @@ def setup_driver():
     # opts.add_argument("--v=1")
     # opts.add_argument("--log-level=0")
     # opts.add_argument("--remote-debugging-port=9222")
+    #
+    opts.page_load_strategy = "eager"
 
     opts.binary_location = os.getenv("GOOGLE_CHROME_BIN", "/usr/bin/chromium")
 
