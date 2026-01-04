@@ -295,7 +295,7 @@ def retrieve_all_properties_others(driver):
 
         data["appeal_decision_date"] = format_date(
             extract_text(
-                "//tr[th[contains(normalize-space(string(.)),'Decision Date')]]/td[last()]"
+                "//th[contains(normalize-space(translate(string(.), '\u00a0', ' ')), 'Decision Date')]/following-sibling::td[1]"
             )
         )
 
