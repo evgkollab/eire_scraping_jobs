@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import socket
@@ -684,8 +685,65 @@ def _restart_driver(old_driver, setup_func):
     return setup_func()
 
 
+def test_proxy_ip():
+    print("--- STARTING PROXY TEST ---")
+
+    # 1. Start the driver with your proxy configuration
+    driver = setup_driver()
+
+    try:
+        # 2. Visit a site that returns ONLY your IP address (JSON)
+        # We use httpbin because it is fast and reliable
+        target_url = "https://httpbin.org/ip"
+        print(f"Navigating to: {target_url} ...")
+
+        driver.get(target_url)
+
+        # 3. Wait a moment and grab the text
+        time.sleep(5)
+        body_text = driver.find_element(By.TAG_NAME, "body").text
+
+        print("\n" + "=" * 40)
+        print(f"RESULT FROM BROWSER: {body_text}")
+        print("=" * 40 + "\n")
+
+        # 4. Check the result
+        try:
+            data = json.loads(body_text)
+            origin_ip = data.get("origin", "UNKNOWN")
+            print(f"✅ The website sees your IP as: {origin_ip}")
+
+            # Simple heuristic check
+            if origin_ip.startswith("34.") or origin_ip.startswith("35."):
+                print(
+                    "❌ FAIL: This looks like a Google Cloud IP. The proxy is NOT working."
+                )
+            else:
+                print(
+                    "🎉 SUCCESS: This does not look like a Google IP. The proxy IS working."
+                )
+
+        except json.JSONDecodeError:
+            print("⚠️ COULD NOT PARSE JSON. Raw output:")
+            print(driver.page_source)
+
+    except Exception as e:
+        print(f"🚨 CRITICAL FAILURE: {e}")
+        # Take a snapshot if it crashed
+        try:
+            print(f"Screenshot B64: {driver.get_screenshot_as_base64()}")
+        except:
+            pass
+
+    finally:
+        driver.quit()
+        print("--- TEST FINISHED ---")
+
+
 # ──────────────────────────────  Main  ────────────────────────────────
 def run():
+    test_proxy_ip()
+
     query = """
         SELECT DISTINCT unique_application_number,
                         CASE
