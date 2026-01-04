@@ -1,10 +1,9 @@
 # Core scraping & automation
-selenium==4.38.0
+selenium==4.39.0
 
 # Data wrangling
 pandas==2.3.3
 pyarrow==22.0.0        # needed so BigQuery loads DataFrames without fallback to pandas-gbq
-webdriver-manager
 
 # Google Cloud SDK – BigQuery client and auth
 google-cloud-bigquery==3.38

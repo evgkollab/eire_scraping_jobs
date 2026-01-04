@@ -22,14 +22,16 @@ def setup_driver():
     opts.add_argument("--disable-background-timer-throttling")
     opts.add_argument("--disable-backgrounding-occluded-windows")
     opts.add_argument("--disable-renderer-backgrounding")
-    opts.add_argument("--disable-features=VizDisplayCompositor")
+    # opts.add_argument("--disable-features=VizDisplayCompositor")
     opts.add_argument("--disable-extensions")
     opts.add_argument("--remote-debugging-pipe")
 
     # --- 3. CRITICAL CRASH FIXES (Chrome 127+) ---
     # These prevent the browser from hanging on the "Search Engine Choice" popup
     opts.add_argument("--disable-search-engine-choice-screen")
-    opts.add_argument("--disable-features=SearchEngineChoiceScreen")
+    opts.add_argument(
+        "--disable-features=VizDisplayCompositor,SearchEngineChoiceScreen"
+    )
     opts.add_argument("--no-zygote")
     opts.add_argument("--disable-gpu-sandbox")
 
@@ -52,7 +54,7 @@ def setup_driver():
     #
     opts.page_load_strategy = "eager"
 
-    opts.binary_location = os.getenv("GOOGLE_CHROME_BIN", "/usr/bin/google-chrome")
+    opts.binary_location = os.getenv("GOOGLE_CHROME_BIN", "/usr/bin/chromium")
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(
         service=service,
