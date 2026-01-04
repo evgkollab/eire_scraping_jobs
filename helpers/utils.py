@@ -56,7 +56,10 @@ def setup_driver():
     opts.page_load_strategy = "eager"
 
     opts.binary_location = os.getenv("GOOGLE_CHROME_BIN", "/usr/bin/chromium")
-    service = Service(ChromeDriverManager().install())
+
+    service = Service(
+        executable_path=os.getenv("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
+    )
     driver = webdriver.Chrome(
         service=service,
         options=opts,

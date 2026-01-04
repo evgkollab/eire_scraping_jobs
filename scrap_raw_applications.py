@@ -631,10 +631,11 @@ SEARCH_PAGE = {
     "Louth County Council": "https://www.eplanning.ie/LouthCC/SearchExact/",
     "Mayo County Council": "https://www.eplanning.ie/mayocc/SearchExact/",
     "Wexford County Council": "https://planning.agileapplications.ie/wexford/search-applications/",
+    "Cork City Council": "https://planning.corkcity.ie/SearchExact",
 }
 
 
-def safe_driver_get(driver, url, pa, max_retries=3, wait_seconds=2):
+def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seconds=2):
     attempt = 0
     while attempt < max_retries:
         logging.info(
@@ -642,66 +643,80 @@ def safe_driver_get(driver, url, pa, max_retries=3, wait_seconds=2):
         )
 
         try:
-            logging.debug(f"[safe_driver_get] Navigating to: {url}")
             driver.get(url)
 
-            # --- Success Path ---
-            # If we get here, driver.get() finished "normally"
+            # --- CORRIGIBLE WAIT ---
+            # Wait up to 5 seconds for the body to be present
+            # We don't wait for 'complete' state because the banner might block it
+            try:
+                from selenium.webdriver.common.by import By
+                from selenium.webdriver.support import expected_conditions as EC
+                from selenium.webdriver.support.ui import WebDriverWait
+
+                WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "body"))
+                )
+            except TimeoutException:
+                pass  # If it times out, we proceed to try and kill the banner anyway
+
+            # --- THE FIX: DESTROY THE BANNER ---
             if pa == "Cork City Council":
                 try:
-                    # quick wait to ensure interactivity before clicking
-                    WebDriverWait(driver, 5).until(
-                        lambda d: d.execute_script("return document.readyState")
-                        in ("interactive", "complete")
-                    )
                     driver.execute_script("""
-                        let b = document.querySelector('.close-cookie-banner');
-                        if (b) b.click();
+                        // 1. Target the specific ID you found
+                        var banner = document.getElementById('cookie-law');
+                        if (banner) {
+                            banner.remove();
+                            console.log('Cookie banner destroyed.');
+                        }
+
+                        // 2. Also try to force the body to be visible just in case
+                        document.body.style.overflow = 'visible';
+
+                        // 3. DO NOT CLICK "Accept" (It triggers GA which we blocked)
+                        // If we must click, click "Decline" which just closes it
+                        // var decline = document.querySelector("button[onclick*='closeCookieBanner']");
+                        // if (decline) decline.click();
                     """)
-                except Exception:
-                    logging.warning(
-                        "[safe_driver_get] Could not click cookie banner, proceeding anyway."
-                    )
+                    logging.info("Nuked cookie banner from DOM.")
+                except Exception as e:
+                    logging.warning(f"Could not remove banner: {e}")
 
-            return True  # Success
+            return True, driver
 
-        except (TimeoutException, WebDriverException, socket.timeout, ReadTimeout) as e:
+        except (TimeoutException, socket.timeout, ReadTimeout) as e:
             logging.warning(
-                f"[safe_driver_get] Timeout/Error on attempt {attempt + 1}: {str(e)}"
+                f"[safe_driver_get] Timeout on attempt {attempt + 1}. Attempting recovery..."
             )
-
-            # 1. STOP the loading spinner so the renderer unfreezes
             try:
+                # Stop the spinner
                 driver.execute_script("window.stop();")
+
+                # Check if we have the content we need despite the timeout
+                if "planningApplicationDetails" in driver.page_source:
+                    logging.info("Recovered via window.stop(). Content is present.")
+                    return True, driver
             except Exception:
-                pass  # If this fails, the driver might be dead, but we proceed to check source
+                pass
 
-            # 2. Check if we actually got what we wanted despite the error
-            if "planningApplicationDetails" in driver.page_source:
-                logging.info(
-                    "[safe_driver_get] Timeout hit, but content is present. Recovered successfully."
-                )
-                return True
-            else:
-                logging.warning(
-                    f"[safe_driver_get] Content verification failed on attempt {attempt + 1}. Retrying..."
-                )
-                # We do NOT raise here; we let the loop continue to the next attempt
+        except WebDriverException as e:
+            logging.error(f"[safe_driver_get] Browser CRASH: {e}")
+            # If it crashed, we MUST break the loop and restart the driver below
 
-        except Exception as e:
-            logging.error(
-                f"[safe_driver_get] Unexpected error on attempt {attempt + 1}: {e}",
-                exc_info=True,
-            )
-
-        # Increment and wait before next retry
+        # --- RESTART LOGIC ---
+        logging.warning("Restarting driver...")
+        try:
+            driver.quit()
+        except Exception:
+            pass
+        driver = setup_driver_func()  # Create fresh driver
         attempt += 1
         time.sleep(wait_seconds)
 
     logging.error(
-        f"[safe_driver_get] Critical Fail: Could not load {url} after {max_retries} attempts."
+        f"[safe_driver_get] Failed to load {url} after {max_retries} attempts."
     )
-    return False
+    return False, driver
 
 
 # ──────────────────────────────  Main  ────────────────────────────────
@@ -838,7 +853,12 @@ def run():
                 search_url = SEARCH_PAGE[pa]
                 logging.info(f" search page▶ {search_url}")
                 if not safe_driver_get(
-                    driver, search_url, pa, max_retries=3, wait_seconds=3
+                    driver,
+                    search_url,
+                    pa,
+                    setup_driver_func=setup_driver,
+                    max_retries=3,
+                    wait_seconds=3,
                 ):
                     continue
 
@@ -868,7 +888,14 @@ def run():
                             "Timed out waiting for URL to change after search."
                         )
             else:
-                if not safe_driver_get(driver, url, pa, max_retries=3, wait_seconds=10):
+                if not safe_driver_get(
+                    driver,
+                    url,
+                    pa,
+                    setup_driver_func=setup_driver,
+                    max_retries=3,
+                    wait_seconds=10,
+                ):
                     continue
                 sleep(2)
                 logging.info(f"▶ parse_page {url}")
