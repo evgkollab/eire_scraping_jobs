@@ -1,5 +1,6 @@
 import logging
 import os
+import zipfile
 from typing import Dict, List, Optional
 
 import pandas as pd
@@ -9,6 +10,82 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
 # from webdriver_manager.chrome import ChromeDriverManager
+
+
+def get_proxy_auth_extension(proxy_host, proxy_port, proxy_user, proxy_pass):
+    """
+    Creates a Chrome extension (zip file) that handles proxy authentication.
+    Returns the path to the zip file.
+    """
+    extension_dir = "/tmp/proxy_auth_plugin"
+    zip_plugin_path = "/tmp/proxy_auth_plugin.zip"
+
+    manifest_json = """
+    {
+        "version": "1.0.0",
+        "manifest_version": 2,
+        "name": "Chrome Proxy",
+        "permissions": [
+            "proxy",
+            "tabs",
+            "unlimitedStorage",
+            "storage",
+            "<all_urls>",
+            "webRequest",
+            "webRequestBlocking"
+        ],
+        "background": {
+            "scripts": ["background.js"]
+        },
+        "minimum_chrome_version":"22.0.0"
+    }
+    """
+
+    background_js = f"""
+    var config = {{
+        mode: "fixed_servers",
+        rules: {{
+            singleProxy: {{
+                scheme: "http",
+                host: "{proxy_host}",
+                port: parseInt({proxy_port})
+            }},
+            bypassList: ["localhost"]
+        }}
+    }};
+
+    chrome.proxy.settings.set({{value: config, scope: "regular"}}, function() {{}});
+
+    function callbackFn(details) {{
+        return {{
+            authCredentials: {{
+                username: "{proxy_user}",
+                password: "{proxy_pass}"
+            }}
+        }};
+    }}
+
+    chrome.webRequest.onAuthRequired.addListener(
+            callbackFn,
+            {{urls: ["<all_urls>"]}},
+            ['blocking']
+    );
+    """
+
+    if not os.path.exists(extension_dir):
+        os.makedirs(extension_dir)
+
+    with open(os.path.join(extension_dir, "manifest.json"), "w") as f:
+        f.write(manifest_json)
+
+    with open(os.path.join(extension_dir, "background.js"), "w") as f:
+        f.write(background_js)
+
+    with zipfile.ZipFile(zip_plugin_path, "w") as zp:
+        zp.write(os.path.join(extension_dir, "manifest.json"), "manifest.json")
+        zp.write(os.path.join(extension_dir, "background.js"), "background.js")
+
+    return zip_plugin_path
 
 
 def setup_driver():
@@ -24,7 +101,7 @@ def setup_driver():
     opts.add_argument("--disable-backgrounding-occluded-windows")
     opts.add_argument("--disable-renderer-backgrounding")
     # opts.add_argument("--disable-features=VizDisplayCompositor")
-    opts.add_argument("--disable-extensions")
+    # opts.add_argument("--disable-extensions")
     opts.add_argument("--remote-debugging-pipe")
 
     # --- 3. CRITICAL CRASH FIXES (Chrome 127+) ---
@@ -36,9 +113,16 @@ def setup_driver():
     opts.add_argument("--no-zygote")
     opts.add_argument("--disable-gpu-sandbox")
 
-    opts.add_argument(
-        "--proxy-server=http://pcaNifMIJV-resfix-ie-nnid-0:PC_2t67sBsYxI0eNLqOh@proxy-eu.proxy-cheap.com:5959"
+    PROXY_HOST = "proxy-eu.proxy-cheap.com"
+    PROXY_PORT = "5959"
+    PROXY_USER = "pcaNifMIJV-resfix-ie-nnid-0"
+    PROXY_PASS = "PC_2t67sBsYxI0eNLqOh"
+    proxy_plugin = get_proxy_auth_extension(
+        PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS
     )
+
+    # 2. Add the Extension to Chrome
+    opts.add_extension(proxy_plugin)
 
     opts.add_argument(
         "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
@@ -68,7 +152,6 @@ def setup_driver():
     driver = webdriver.Chrome(
         service=service,
         options=opts,
-        # log_output="/tmp/chromedriver.log",
     )
     driver.set_page_load_timeout(60)
     driver.set_script_timeout(60)

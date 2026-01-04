@@ -652,9 +652,7 @@ def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seco
             driver.get(url)
 
         except (TimeoutException, socket.timeout, ReadTimeout):
-            logging.warning(
-                f"[safe_driver_get] Timeout on attempt {attempt + 1}. Taking snapshot..."
-            )
+            logging.warning(f"[safe_driver_get] Timeout on attempt {attempt + 1}.")
 
         except WebDriverException as e:
             logging.error(
