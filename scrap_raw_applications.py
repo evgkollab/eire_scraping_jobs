@@ -716,6 +716,7 @@ def run():
               SELECT unique_application_number
               FROM `eire-1746041472369.eireestate_dataset_processing.applications_raw_scrapped`)
           AND planning_authority not in ('Cork County Council')
+          AND planning_authority  in ('Cork City Council')
           AND application_status not in ('PrePlanning Application')
           AND unique_application_number not in ('DON1210018',
 					'DON1210015',
