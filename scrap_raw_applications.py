@@ -273,7 +273,7 @@ def retrieve_all_properties_others(driver):
             "//th[contains(normalize-space(string(.)),'Decision Description')]/following-sibling::td[1]"
         )
     except Exception:
-        data["grant_date"] = ""
+        data["final_grant_date"] = ""
         data["full_proposal"] = ""
         logging.warning("Decision tab activation or field extraction failed")
 
@@ -801,8 +801,7 @@ def run():
           AND unique_application_number NOT IN (
               SELECT unique_application_number
               FROM `eire-1746041472369.eireestate_dataset_processing.applications_raw_scrapped`)
-          AND planning_authority not in ('Cork County Council')
-          AND planning_authority  in ('Cork City Council')
+          AND planning_authority  in ('Cork City Council',''Cork County Council'')
           AND unique_application_number in (select unique_application_number from
                    eireestate_dataset_processing.applications_raw_cleaned_ready_document_scrap_with_intersections)
           AND application_status not in ('PrePlanning Application')
