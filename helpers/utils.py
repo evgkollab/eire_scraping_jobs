@@ -26,8 +26,15 @@ def setup_driver():
     opts.add_argument("--disable-extensions")
     opts.add_argument("--remote-debugging-pipe")
 
+    # --- 3. CRITICAL CRASH FIXES (Chrome 127+) ---
+    # These prevent the browser from hanging on the "Search Engine Choice" popup
+    opts.add_argument("--disable-search-engine-choice-screen")
+    opts.add_argument("--disable-features=SearchEngineChoiceScreen")
+    opts.add_argument("--no-zygote")
+    opts.add_argument("--disable-gpu-sandbox")
+
     opts.add_argument(
-        "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+        "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
     )
 
     prefs = {

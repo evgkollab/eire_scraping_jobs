@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # --- 1. Install system deps & Google Chrome Stable --------------------
 ENV DEBIAN_FRONTEND=noninteractive
