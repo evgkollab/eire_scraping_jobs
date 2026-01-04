@@ -7,8 +7,10 @@ pyarrow==22.0.0        # needed so BigQuery loads DataFrames without fallback to
 
 # Google Cloud SDK – BigQuery client and auth
 google-cloud-bigquery==3.38
+google-cloud-bigquery-storage
 
 # Environment-variable convenience
 python-dotenv==1.2.1
 db-dtypes
 thefuzz
+pandas-gbq
