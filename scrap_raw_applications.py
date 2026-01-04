@@ -369,7 +369,7 @@ def parse_page(
                 driver,
                 "//ul[contains(@class, 'nav-tabs') and contains(@class, 'bg-info')]",
                 "presence",
-                60,
+                30,
             )
         elif (
             planning_authority in SEARCH_PAGE
@@ -703,6 +703,7 @@ def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seco
         # --- RESTART IF FAILED ---
         logging.warning("Restarting driver before next attempt...")
         driver = _restart_driver(driver, setup_driver_func)
+        accept_cookies(driver)
         attempt += 1
         time.sleep(wait_seconds)
 
