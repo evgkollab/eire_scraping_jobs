@@ -1,14 +1,14 @@
 # Core scraping & automation
-selenium==4.20.0
+selenium==4.38.0
 
 # Data wrangling
-pandas==2.2.2
-pyarrow==16.0.0        # needed so BigQuery loads DataFrames without fallback to pandas-gbq
+pandas==2.3.3
+pyarrow==22.0.0        # needed so BigQuery loads DataFrames without fallback to pandas-gbq
 
 # Google Cloud SDK – BigQuery client and auth
-google-cloud-bigquery==3.17.2
+google-cloud-bigquery==3.38
 
 # Environment-variable convenience
-python-dotenv==1.0.1
+python-dotenv==1.2.1
 db-dtypes
 thefuzz
