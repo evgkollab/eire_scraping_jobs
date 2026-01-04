@@ -24,10 +24,22 @@ def setup_driver():
     opts.add_argument("--disable-features=VizDisplayCompositor")
     opts.add_argument("--disable-extensions")
 
-    # opts.add_argument("--enable-logging=stderr")
-    # opts.add_argument("--v=1")
-    # opts.add_argument("--log-level=0")
-    # opts.add_argument("--remote-debugging-port=9222")
+    opts.add_argument(
+        "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+    )
+
+    prefs = {
+        "profile.managed_default_content_settings.images": 2,  # Block images
+        "profile.default_content_setting_values.notifications": 2,
+        "profile.managed_default_content_settings.cookies": 1,
+        "profile.managed_default_content_settings.javascript": 1,
+        "profile.managed_default_content_settings.plugins": 1,
+        "profile.managed_default_content_settings.popups": 2,
+        "profile.managed_default_content_settings.geolocation": 2,
+        "profile.managed_default_content_settings.media_stream": 2,
+    }
+    opts.add_experimental_option("prefs", prefs)
+
     #
     opts.page_load_strategy = "eager"
 
