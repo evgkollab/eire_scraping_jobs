@@ -633,7 +633,7 @@ SEARCH_PAGE = {
 }
 
 
-def safe_driver_get(driver, url, max_retries=3, wait_seconds=2):
+def safe_driver_get(driver, url, pa, max_retries=3, wait_seconds=2):
     attempt = 0
     while attempt < max_retries:
         logging.info(
@@ -642,6 +642,16 @@ def safe_driver_get(driver, url, max_retries=3, wait_seconds=2):
         try:
             logging.debug(f"[safe_driver_get] Navigating to: {url}")
             driver.get(url)
+
+            def kill_cookie_banner(driver):
+                driver.execute_script("""
+                    let b = document.querySelector('.close-cookie-banner');
+                    if (b) b.click();
+                """)
+
+            if pa == "Cork City Council":
+                kill_cookie_banner(driver)
+
             logging.debug(
                 f"[safe_driver_get] Current URL after get: {driver.current_url}"
             )
@@ -651,13 +661,13 @@ def safe_driver_get(driver, url, max_retries=3, wait_seconds=2):
             logging.warning(
                 f"[safe_driver_get] Known exception on attempt {attempt + 1}: {e}"
             )
-            try:
-                with open("/tmp/chromedriver.log", "r") as f:
-                    logging.error(
-                        "CHROMEDRIVER LOG TAIL:\n" + "".join(f.readlines()[-200:])
-                    )
-            except Exception:
-                pass
+            # try:
+            #     with open("/tmp/chromedriver.log", "r") as f:
+            #         logging.error(
+            #             "CHROMEDRIVER LOG TAIL:\n" + "".join(f.readlines()[-200:])
+            #         )
+            # except Exception:
+            #     pass
 
         except Exception as e:
             logging.error(
@@ -807,7 +817,7 @@ def run():
                 search_url = SEARCH_PAGE[pa]
                 logging.info(f" search page▶ {search_url}")
                 if not safe_driver_get(
-                    driver, search_url, max_retries=3, wait_seconds=3
+                    driver, search_url, pa, max_retries=3, wait_seconds=3
                 ):
                     continue
 

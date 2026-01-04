@@ -24,17 +24,17 @@ def setup_driver():
     opts.add_argument("--disable-features=VizDisplayCompositor")
     opts.add_argument("--disable-extensions")
 
-    opts.add_argument("--enable-logging=stderr")
-    opts.add_argument("--v=1")
-    opts.add_argument("--log-level=0")
-    opts.add_argument("--remote-debugging-port=9222")
+    # opts.add_argument("--enable-logging=stderr")
+    # opts.add_argument("--v=1")
+    # opts.add_argument("--log-level=0")
+    # opts.add_argument("--remote-debugging-port=9222")
 
     opts.binary_location = os.getenv("GOOGLE_CHROME_BIN", "/usr/bin/chromium")
 
     driver = webdriver.Chrome(
         service=Service(os.getenv("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")),
         options=opts,
-        log_output="/tmp/chromedriver.log",
+        # log_output="/tmp/chromedriver.log",
     )
     driver.set_page_load_timeout(60)
     return driver
