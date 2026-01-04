@@ -37,6 +37,38 @@ def setup_driver():
         # log_output="/tmp/chromedriver.log",
     )
     driver.set_page_load_timeout(60)
+    driver.set_script_timeout(60)
+
+    # ⬇️ THIS MUST BE HERE ⬇️ (before any driver.get())
+    driver.execute_cdp_cmd("Network.enable", {})
+    driver.execute_cdp_cmd(
+        "Network.setBlockedURLs",
+        {
+            "urls": [
+                "*googletagmanager.com*",
+                "*google-analytics.com*",
+                "*doubleclick.net*",
+                "*googleadservices.com*",
+                "*facebook.net*",
+                "*hotjar.com*",
+                "*clarity.ms*",
+                "*analytics*",
+                "*gtm*",
+            ]
+        },
+    )
+
+    driver.execute_cdp_cmd(
+        "Page.addScriptToEvaluateOnNewDocument",
+        {
+            "source": """
+            Object.defineProperty(window, 'ga', { get: () => undefined });
+            Object.defineProperty(window, 'gtag', { get: () => undefined });
+            Object.defineProperty(window, 'dataLayer', { value: [] });
+        """
+        },
+    )
+
     return driver
 
 
