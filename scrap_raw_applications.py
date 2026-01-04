@@ -260,7 +260,7 @@ def retrieve_all_properties_others(driver):
         )
         data["final_grant_date"] = format_date(
             extract_text(
-                "//th[normalize-space(text())='Grant Date']/following-sibling::td[1]"
+                "//th[contains(normalize-space(.),'Grant Date']/following-sibling::td[1]"
             )
         )
         data["full_proposal"] = extract_text(
@@ -286,11 +286,13 @@ def retrieve_all_properties_others(driver):
         data["appeal_decision"] = extract_text(
             "//th[contains(text(), 'Appeal Decision')]/following-sibling::td[1]"
         )
+
         data["appeal_decision_date"] = format_date(
             extract_text(
-                "//th[contains(normalize-space(.),'Decision Date')]/following-sibling::td[1]"
+                "//th[contains(normalize-space(string(.))),'Decision Date')]/following-sibling::td[1]"
             )
         )
+
     except Exception:
         data["appeal_type"] = ""
         data["appeal_decision"] = ""
@@ -663,7 +665,7 @@ def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seco
             if pa == "Cork City Council":
                 try:
                     # Wait 2s for banner to render (since we are moving fast)
-                    time.sleep(2)
+                    time.sleep(1)
                     driver.execute_script("""
                         var b = document.getElementById('cookie-law');
                         if(b) b.remove();
