@@ -651,6 +651,14 @@ def safe_driver_get(driver, url, max_retries=3, wait_seconds=2):
             logging.warning(
                 f"[safe_driver_get] Known exception on attempt {attempt + 1}: {e}"
             )
+            try:
+                with open("/tmp/chromedriver.log", "r") as f:
+                    logging.error(
+                        "CHROMEDRIVER LOG TAIL:\n" + "".join(f.readlines()[-200:])
+                    )
+            except Exception:
+                pass
+
         except Exception as e:
             logging.error(
                 f"[safe_driver_get] Unexpected error on attempt {attempt + 1}: {e}",
