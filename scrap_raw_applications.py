@@ -580,9 +580,18 @@ def search_application(driver, row, retries, search_url):
                 "Fingal County Council",
                 "Wexford County Council",
             ):
-                # Try the first input field
-                inp = WebDriverWait(driver, 10).until(
-                    EC.visibility_of_element_located((By.ID, "searchInput"))
+                # # Try the first input field
+                # inp = WebDriverWait(driver, 10).until(
+                #     EC.visibility_of_element_located((By.ID, "searchInput"))
+                # )
+                inp = WebDriverWait(driver, 30).until(
+                    lambda d: d.execute_script("""
+                                        let root = document.querySelector('sas-quick-search');
+                                        if(!root) return null;
+                                        let el = root.querySelector('input#searchInput');
+                                        if(el && el.offsetParent !== null) return el;
+                                        return null;
+                                    """)
                 )
             else:
                 # Fall back to the alternative input field
@@ -902,7 +911,7 @@ def run():
     df = client.query(query).to_dataframe()
     driver = setup_driver()
     replace_strings = [" by Fingal County Council", " - see appeal details", ""]
-    batch, batch_ctr, batch_size = [], [0], 60
+    batch, batch_ctr, batch_size = [], [0], 20
     MAX_ITERATIONS_PER_DRIVER = 31
 
     try:
