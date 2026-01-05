@@ -138,6 +138,9 @@ def retrieve_all_properties_wex(driver):
         "appeal_decision_date": "",  # not available on this layout
         "appeal_decision": "",  # not available on this layout
         "final_grant_date": "",  # not available on this layout
+        "received_date": safe_get_text(
+            "//th[contains(text(), 'Registration date:')]", extract_after_colon=True
+        ),
         "application_type": safe_get_text(
             "//th[contains(text(), 'Application Type:')]", extract_after_colon=True
         ),
@@ -834,6 +837,7 @@ def run():
         WHERE
            unique_application_number NOT LIKE 'REF%%'
           AND unique_application_number NOT LIKE '%%ABP%%'
+          AND unique_application_number  LIKE 'DCC%'
           AND unique_application_number NOT IN (
               SELECT unique_application_number
               FROM `eire-1746041472369.eireestate_dataset_processing.applications_raw_scrapped`)
