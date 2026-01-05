@@ -705,9 +705,9 @@ def safe_driver_get(driver, url, pa, setup_driver_func, max_retries=3, wait_seco
                 except Exception:
                     pass
 
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "container"))
-            )
+            # WebDriverWait(driver, 10).until(
+            #     EC.presence_of_element_located((By.CLASS_NAME, "container"))
+            # )
 
             return True, driver
 
