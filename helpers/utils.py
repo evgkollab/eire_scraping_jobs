@@ -126,7 +126,7 @@ def setup_driver():
     )
 
     prefs = {
-        "profile.managed_default_content_settings.images": 2,  # Block images
+        "profile.managed_default_content_settings.images": 1,  # Block images
         "profile.managed_default_content_settings.stylesheets": 1,
         "profile.default_content_setting_values.notifications": 2,
         "profile.managed_default_content_settings.cookies": 1,
