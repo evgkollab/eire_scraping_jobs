@@ -837,7 +837,8 @@ def run():
         WHERE
            unique_application_number NOT LIKE 'REF%%'
           AND unique_application_number NOT LIKE '%%ABP%%'
-          AND unique_application_number  LIKE 'DCC%'
+          AND unique_application_number NOT LIKE 'CRK%%'
+          AND unique_application_number NOT LIKE 'CKC%%'
           AND unique_application_number NOT IN (
               SELECT unique_application_number
               FROM `eire-1746041472369.eireestate_dataset_processing.applications_raw_scrapped`)
