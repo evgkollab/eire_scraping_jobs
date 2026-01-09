@@ -837,8 +837,6 @@ def run():
         WHERE
            unique_application_number NOT LIKE 'REF%%'
           AND unique_application_number NOT LIKE '%%ABP%%'
-          AND unique_application_number NOT LIKE 'CRK%%'
-          AND unique_application_number NOT LIKE 'CKC%%'
           AND unique_application_number NOT IN (
               SELECT unique_application_number
               FROM `eire-1746041472369.eireestate_dataset_processing.applications_raw_scrapped`)
@@ -908,7 +906,41 @@ def run():
 					'TIP15600886',
 					'WFD2560776',
 					'WES2560323',
-					'WIC')
+					'WIC',
+					'WEX20251625W',
+					'WEX20251616W',
+					'WEX20251611W',
+					'WEX20251574W',
+					'WEX20251508W',
+					'WEX20251497W',
+					'WEX20251422W',
+					'WEX20251421W',
+					'WEX20251420W',
+					'WEX20251412W',
+					'WEX20251411W',
+					'WEX20190704',
+					'WEX20170660',
+					'WES2460050',
+					'SLI256',
+					'ROS22491',
+					'MON19576',
+					'MEA25213',
+					'LOU18485',
+					'LEI1544',
+					'LAO2460508',
+					'KIL17312',
+					'FINCU/25/007',
+					'FINCU/25/003',
+					'FINCU/22/003',
+					'FINCU/19/007',
+					'FINCU/19/005',
+					'DLRPac/42/21',
+					'DLRPac/41/19',
+					'DLRPac/16/21',
+					'DLRPAC/42/21',
+					'DLRPAC/41/19',
+					'DLRPAC/16/21',
+					'CLA22846')
         ORDER BY planning_authority
     """
     df = client.query(query).to_dataframe()
