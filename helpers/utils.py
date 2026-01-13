@@ -112,8 +112,8 @@ def setup_driver():
 
     PROXY_HOST = "proxy-eu.proxy-cheap.com"
     PROXY_PORT = "5959"
-    PROXY_USER = "pcaNifMIJV-resfix-ie-nnid-0"
-    PROXY_PASS = "PC_2t67sBsYxI0eNLqOh"
+    PROXY_USER = "pc92zux1vh-resfix-ie-nnid-0"
+    PROXY_PASS = "PC_6b1sMsstve8I7ekYt"
     proxy_plugin = get_proxy_auth_extension(
         PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS
     )
