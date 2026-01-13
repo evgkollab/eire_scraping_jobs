@@ -583,19 +583,19 @@ def search_application(driver, row, retries, search_url):
                 "Fingal County Council",
                 "Wexford County Council",
             ):
-                # # Try the first input field
-                # inp = WebDriverWait(driver, 10).until(
-                #     EC.visibility_of_element_located((By.ID, "searchInput"))
-                # )
-                inp = WebDriverWait(driver, 30).until(
-                    lambda d: d.execute_script("""
-                                        let root = document.querySelector('sas-quick-search');
-                                        if(!root) return null;
-                                        let el = root.querySelector('input#searchInput');
-                                        if(el && el.offsetParent !== null) return el;
-                                        return null;
-                                    """)
+                # Try the first input field
+                inp = WebDriverWait(driver, 10).until(
+                    EC.visibility_of_element_located((By.ID, "searchInput"))
                 )
+                # inp = WebDriverWait(driver, 30).until(
+                #     lambda d: d.execute_script("""
+                #                         let root = document.querySelector('sas-quick-search');
+                #                         if(!root) return null;
+                #                         let el = root.querySelector('input#searchInput');
+                #                         if(el && el.offsetParent !== null) return el;
+                #                         return null;
+                #                     """)
+                # )
             else:
                 # Fall back to the alternative input field
                 inp = WebDriverWait(driver, 10).until(
